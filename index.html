@@ -4721,8 +4721,9 @@
         if (!human.alive) continue;
         if (human.x < viewLeft - 36 || human.x > viewRight + 36 || human.y < viewTop - 36 || human.y > viewBottom + 36) continue;
         const dir = normalize(human.vx, human.vy);
-        const bodyColor = human.mode === 'hunt' ? '#1d4ed8' : human.mode === 'flee' ? '#7c2d12' : '#2563eb';
-        const capeColor = human.mode === 'hunt' ? '#f59e0b' : human.mode === 'flee' ? '#ef4444' : '#93c5fd';
+        const isFemale = human.sex === 'F';
+        const bodyColor = isFemale ? '#ec4899' : '#2563eb';
+        const capeColor = isFemale ? '#f9a8d4' : '#93c5fd';
         const torsoRadius = 6 + human.generation * 0.12;
 
         ctx.beginPath();
