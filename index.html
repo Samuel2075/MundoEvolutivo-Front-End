@@ -706,12 +706,14 @@
     const HUMAN_MAX_AGE_MS = 380000;
     const HUMAN_REPRODUCTION_DISTANCE = 26;
     const HUMAN_BASE_BUILD_COST = { wood: 16, stone: 10 };
-    const HUMAN_BASE_CAPACITY = 8;
+    const HUMAN_BASE_CAPACITY = 2;
+    const HUMAN_BASE_REQUIRED_BUILDERS = 2;
+    const HUMAN_RESOURCE_SHARE_RADIUS = 28;
     const HUMAN_BASE_BUILD_RADIUS = 24;
     const HUMAN_TRAIT_KEYS = ['speed', 'vision', 'courage', 'efficiency', 'fertility', 'wisdom'];
     const HUMAN_ALLOWED_BIOMES = ['plains', 'forest', 'swamp', 'mountain'];
     const EDIBLE_RESOURCE_TYPES = new Set(['berry', 'mushroom', 'cactus', 'fish', 'herb']);
-    const HUMAN_ACTION_LIBRARY = ['beber', 'coletar', 'vasculhar', 'caçar', 'pescar', 'coletar madeira', 'coletar pedra', 'construir base', 'armazenar', 'descansar na base', 'curar', 'acasalamento', 'ajudar aliado', 'trocar informações'];
+    const HUMAN_ACTION_LIBRARY = ['beber', 'coletar', 'vasculhar', 'caçar', 'pescar', 'coletar madeira', 'coletar pedra', 'construir base', 'compartilhar recursos', 'armazenar', 'descansar na base', 'curar', 'acasalamento', 'ajudar aliado', 'trocar informações'];
     const HUMAN_DIRECT_FOOD_TYPES = new Set(['berry', 'mushroom', 'cactus', 'fish']);
     const HUMAN_GROUP_DEFENSE_RADIUS = TILE_SIZE * 5.2;
     const HUMAN_ALLY_SUPPORT_RADIUS = TILE_SIZE * 6.5;
@@ -835,7 +837,7 @@
     let buildSites = [];
     let initialHumanFocus = null;
     let tribeKnowledge = {};
-    const ALL_HUMAN_ACTIONS = ['beber', 'coletar', 'vasculhar', 'caçar', 'acasalamento', 'coletar madeira', 'coletar pedra', 'construir base', 'armazenar', 'descansar na base', 'pescar', 'curar', 'proteger base', 'ajudar aliado', 'trocar informações'];
+    const ALL_HUMAN_ACTIONS = ['beber', 'coletar', 'vasculhar', 'caçar', 'acasalamento', 'coletar madeira', 'coletar pedra', 'construir base', 'compartilhar recursos', 'armazenar', 'descansar na base', 'pescar', 'curar', 'proteger base', 'ajudar aliado', 'trocar informações'];
     const societyUnlocks = new Set(ALL_HUMAN_ACTIONS);
     let respawnQueue = [];
     let speciesState = new Map();
@@ -1732,7 +1734,7 @@
           }
 
           const targetHuman = isHostileToHumans(animal.speciesId)
-            ? findNearestHuman(animal, species.vision * 0.92, (human) => human.alive && human.health > 0)
+            ? findNearestHuman(animal, species.vision * 0.92, (human) => human.alive && human.health > 0 && !isHumanInsideBase(human))
             : null;
 
           const preyDistSq = prey ? distanceSq(animal.x, animal.y, prey.x, prey.y) : Infinity;
@@ -1742,7 +1744,9 @@
             animal.mode = 'huntHuman';
             moveVector = normalize(targetHuman.x - animal.x, targetHuman.y - animal.y);
             if (humanDistSq <= species.attackRange * species.attackRange) {
-              targetHuman.health = Math.max(0, targetHuman.health - dtMs * 0.017 * Math.max(0.9, species.threat / 34));
+              if (!isHumanInsideBase(targetHuman)) {
+                targetHuman.health = Math.max(0, targetHuman.health - dtMs * 0.017 * Math.max(0.9, species.threat / 34));
+              }
               targetHuman.mode = 'flee';
               targetHuman.decisionCooldownMs = 0;
               animal.decisionCooldownMs = 220;
@@ -1890,6 +1894,43 @@
       return nearest;
     }
 
+    function getBaseResidents(base) {
+      if (!base) return [];
+      return humans.filter((human) => human.alive && human.homeBaseId === base.id);
+    }
+
+    function getBaseResidentCount(base) {
+      return getBaseResidents(base).length;
+    }
+
+    function getUsableBaseForHuman(human, radius = Infinity) {
+      if (!human) return null;
+      let preferred = null;
+      if (human.homeBaseId) {
+        preferred = bases.find((base) => base.id === human.homeBaseId) || null;
+        if (preferred && distanceSq(human.x, human.y, preferred.x, preferred.y) <= radius * radius) {
+          return preferred;
+        }
+      }
+      return findNearestBase(human, radius, (base) => getBaseResidentCount(base) < HUMAN_BASE_CAPACITY);
+    }
+
+    function isHumanInsideBase(human, base = null) {
+      if (!human) return null;
+      if (base) {
+        return distanceSq(human.x, human.y, base.x, base.y) <= base.radius * base.radius ? base : null;
+      }
+      return findNearestBase(human, TILE_SIZE * 3.8, (candidate) => distanceSq(human.x, human.y, candidate.x, candidate.y) <= candidate.radius * candidate.radius);
+    }
+
+    function claimBaseResidence(base, human) {
+      if (!base || !human || !human.alive) return false;
+      if (human.homeBaseId === base.id) return true;
+      if (getBaseResidentCount(base) >= HUMAN_BASE_CAPACITY) return false;
+      human.homeBaseId = base.id;
+      return true;
+    }
+
     function createBuildSite(x, y, founder = null) {
       const site = {
         id: ++buildSiteIdCounter,
@@ -1901,7 +1942,8 @@
           wood: 0,
           stone: 0
         },
-        founderId: founder ? founder.id : null
+        founderId: founder ? founder.id : null,
+        builderIds: founder ? [founder.id] : []
       };
       buildSites.push(site);
       return site;
@@ -1909,6 +1951,9 @@
 
     function contributeToBuildSite(human, site) {
       if (!site || !human) return false;
+      if (!site.builderIds) site.builderIds = [];
+      if (!site.builderIds.includes(human.id)) site.builderIds.push(human.id);
+
       let contributed = false;
       const woodNeed = getBuildSiteMissing(site, 'wood');
       const stoneNeed = getBuildSiteMissing(site, 'stone');
@@ -1925,12 +1970,20 @@
         contributed = contributed || moved > 0;
       }
 
-      if (getBuildSiteMissing(site, 'wood') <= 0 && getBuildSiteMissing(site, 'stone') <= 0) {
+      const activeBuilders = findNearbyHumans(site, TILE_SIZE * 4.2, (other) => other.alive && (other.targetKind === 'buildBase' || other.targetKind === 'shareResources' || other.id === human.id));
+      const builderIds = new Set([...(site.builderIds || []), human.id, ...activeBuilders.map((other) => other.id)]);
+      const ready = getBuildSiteMissing(site, 'wood') <= 0 && getBuildSiteMissing(site, 'stone') <= 0;
+      if (ready && builderIds.size >= HUMAN_BASE_REQUIRED_BUILDERS) {
         const base = createBase(site.x, site.y, null);
         tribeKnowledge.base = { x: base.x, y: base.y, refId: base.id, ttlMs: 120000 };
-        const nearbyHumans = humans.filter((other) => other.alive && distanceSq(other.x, other.y, site.x, site.y) <= (TILE_SIZE * 8) ** 2);
+        const nearbyHumans = humans
+          .filter((other) => other.alive && builderIds.has(other.id))
+          .sort((a, b) => distanceSq(a.x, a.y, site.x, site.y) - distanceSq(b.x, b.y, site.x, site.y));
+        for (const other of nearbyHumans.slice(0, HUMAN_BASE_CAPACITY)) {
+          claimBaseResidence(base, other);
+        }
         for (const other of nearbyHumans) {
-          other.homeBaseId = base.id;
+          recordHumanAction(other, 'buildBase', `${base.name} concluída`, true);
         }
         buildSites = buildSites.filter((entry) => entry.id !== site.id);
       }
@@ -1949,6 +2002,7 @@
         y: clamp(y, 0, WORLD_HEIGHT),
         radius: 26,
         integrity: 100,
+        capacity: HUMAN_BASE_CAPACITY,
         stock: {
           food: builder ? Math.max(0, builder.inventory.food * 0.35) : 0,
           water: builder ? Math.max(0, builder.inventory.water * 0.35) : 0,
@@ -2123,6 +2177,7 @@
         hunt: 'Caçando',
         store: 'Guardando recursos',
         buildBase: 'Construindo base',
+        shareResources: 'Compartilhando recursos',
         repairBase: 'Reforçando base',
         mate: 'Procurando parceiro',
         rest: 'Descansando',
@@ -2650,6 +2705,29 @@
       return amount > 0.15;
     }
 
+    function transferBuildResourcesBetweenHumans(receiver, donor, site = null) {
+      if (!receiver || !donor || !receiver.alive || !donor.alive) return false;
+      if (distanceSq(receiver.x, receiver.y, donor.x, donor.y) > HUMAN_RESOURCE_SHARE_RADIUS * HUMAN_RESOURCE_SHARE_RADIUS) return false;
+      let transferred = false;
+      const resources = ['wood', 'stone'];
+      for (const key of resources) {
+        const missing = site ? getBuildSiteMissing(site, key) : Math.max(0, 6 - (receiver.inventory[key] || 0));
+        if (missing <= 0) continue;
+        const donorReserve = key === 'wood' ? 2 : 1.5;
+        const available = Math.max(0, (donor.inventory[key] || 0) - donorReserve);
+        if (available <= 0) continue;
+        const amount = Math.min(available, missing, 5);
+        if (amount <= 0.15) continue;
+        donor.inventory[key] = Math.max(0, (donor.inventory[key] || 0) - amount);
+        receiver.inventory[key] = clamp((receiver.inventory[key] || 0) + amount, 0, key === 'wood' ? 30 : 28);
+        transferred = true;
+      }
+      if (transferred) {
+        donor.energy = clamp(donor.energy - 1.2, 0, 100);
+      }
+      return transferred;
+    }
+
     function humansCanExchangeKnowledge(a, b) {
       if (!a || !b || !a.alive || !b.alive) return false;
       const keys = ['water', 'food', 'wood', 'stone', 'fish', 'carcass', 'threat'];
@@ -2711,6 +2789,29 @@
       }
     }
 
+    function autoShareBuildResourcesForNearbyHumans() {
+      for (let i = 0; i < humans.length; i++) {
+        const human = humans[i];
+        if (!human.alive) continue;
+        const site = findNearestBuildSite(human, TILE_SIZE * 4);
+        if (!site) continue;
+        const nearby = findNearbyHumans(human, HUMAN_RESOURCE_SHARE_RADIUS, (other) => other.alive);
+        for (const other of nearby) {
+          if (other.id <= human.id) continue;
+          const sharedToHuman = transferBuildResourcesBetweenHumans(human, other, site);
+          const sharedToOther = transferBuildResourcesBetweenHumans(other, human, site);
+          if (sharedToHuman) {
+            recordHumanAction(other, 'shareResources', `compartilhou recursos com ${human.name}`, true);
+            recordHumanAction(human, 'shareResources', `recebeu recursos de ${other.name}`, true);
+          }
+          if (sharedToOther) {
+            recordHumanAction(human, 'shareResources', `compartilhou recursos com ${other.name}`, true);
+            recordHumanAction(other, 'shareResources', `recebeu recursos de ${human.name}`, true);
+          }
+        }
+      }
+    }
+
     function getNearbyHumanGroupResources(human, radius = HUMAN_GROUP_BUILD_RADIUS) {
       const nearby = findNearbyHumans(human, radius, (other) => other.alive);
       const group = [human, ...nearby];
@@ -2728,13 +2829,16 @@
       const buildSite = findNearestBuildSite(human, HUMAN_GROUP_BUILD_RADIUS);
       const woodStored = buildSite ? (buildSite.stored.wood || 0) : 0;
       const stoneStored = buildSite ? (buildSite.stored.stone || 0) : 0;
+      const workerIds = new Set([human.id, ...findNearbyHumans(human, HUMAN_GROUP_BUILD_RADIUS, (other) => other.alive).map((other) => other.id), ...(buildSite?.builderIds || [])]);
+      const workerCount = workerIds.size;
       return {
         groupWood: group.wood + woodStored,
         groupStone: group.stone + stoneStored,
         members: group.members,
+        workerCount,
         weapons: group.weapons,
-        canBuildSoon: !nearestBase && (group.wood + woodStored) >= HUMAN_BASE_BUILD_COST.wood * 0.45 && (group.stone + stoneStored) >= HUMAN_BASE_BUILD_COST.stone * 0.45,
-        siteReady: !nearestBase && (group.wood + woodStored) >= HUMAN_BASE_BUILD_COST.wood && (group.stone + stoneStored) >= HUMAN_BASE_BUILD_COST.stone
+        canBuildSoon: !nearestBase && workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && (group.wood + woodStored) >= HUMAN_BASE_BUILD_COST.wood * 0.45 && (group.stone + stoneStored) >= HUMAN_BASE_BUILD_COST.stone * 0.45,
+        siteReady: !nearestBase && workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && (group.wood + woodStored) >= HUMAN_BASE_BUILD_COST.wood && (group.stone + stoneStored) >= HUMAN_BASE_BUILD_COST.stone
       };
     }
 
@@ -3238,7 +3342,7 @@
       if (homeBase) {
         child.x = homeBase.x + randomBetween(simulationRng, -10, 10);
         child.y = homeBase.y + randomBetween(simulationRng, -10, 10);
-        child.homeBaseId = homeBase.id;
+        claimBaseResidence(homeBase, child);
       }
       humans.push(child);
       currentRunChildrenBorn += 1;
@@ -3253,7 +3357,7 @@
     }
 
     function humanTryInteract(human, targetAnimal, dtMs = SIM_TICK_MS) {
-      const nearestBase = findNearestBase(human, TILE_SIZE * 4);
+      const nearestBase = getUsableBaseForHuman(human, TILE_SIZE * 4);
       if (human.targetKind === 'water') {
         const resource = findNearestResource(human, 24, new Set(['water']));
         if (resource) {
@@ -3348,6 +3452,12 @@
       } else if (human.targetKind === 'store' && nearestBase) {
         storeAtBase(human, nearestBase);
         human.homeBaseId = nearestBase.id;
+      } else if (human.targetKind === 'shareResources') {
+        const site = findNearestBuildSite(human, TILE_SIZE * 4.5);
+        if (site && contributeToBuildSite(human, site)) {
+          human.energy = clamp(human.energy - 2.2, 0, 100);
+          recordHumanAction(human, 'shareResources', `contribuiu para ${site.name}`, true);
+        }
       } else if (human.targetKind === 'buildBase') {
         let site = findNearestBuildSite(human, TILE_SIZE * 4.5);
         if (!site) {
@@ -3356,7 +3466,7 @@
         if (contributeToBuildSite(human, site)) {
           const builtBase = findNearestBase(site, TILE_SIZE * 2.5);
           if (builtBase) {
-            human.homeBaseId = builtBase.id;
+            claimBaseResidence(builtBase, human);
             tryCraftHumanTools(human, builtBase);
           }
         }
@@ -3378,6 +3488,7 @@
       const dtSeconds = dtMs / 1000;
       decayTribeKnowledge(dtMs);
       autoShareKnowledgeForNearbyHumans();
+      autoShareBuildResourcesForNearbyHumans();
       const desiredBaseCount = Math.max(1, Math.ceil(humans.length / HUMAN_BASE_CAPACITY));
       const collectiveWood = totalHumanInventoryResource('wood');
       const collectiveStone = totalHumanInventoryResource('stone');
@@ -3414,9 +3525,10 @@
           continue;
         }
 
-        const nearestBase = findNearestBase(human, stats.vision * 1.2);
+        const nearestBase = getUsableBaseForHuman(human, stats.vision * 1.2);
+        const shelteredBase = isHumanInsideBase(human);
         const nearestBuildSite = findNearestBuildSite(human, stats.vision * 1.2);
-        if (nearestBase && !human.homeBaseId) human.homeBaseId = nearestBase.id;
+        if (nearestBase && !human.homeBaseId) claimBaseResidence(nearestBase, human);
         if (nearestBase) {
           if ((human.hunger > 52 || human.thirst > 50) && supplyHumanFromBase(human, nearestBase)) {
             human.mode = 'aidAlly';
@@ -3433,7 +3545,7 @@
         if (emergencyNeedWeapon) {
           tryCraftHumanTools(human, nearestBase || null);
         }
-        const nearbyPredator = findNearestAnimal(human, stats.fleeRadius + 36, (animal) => {
+        const nearbyPredator = shelteredBase ? null : findNearestAnimal(human, stats.fleeRadius + 36, (animal) => {
           const species = SPECIES_MAP[animal.speciesId];
           return !!species && isHostileToHumans(species.id);
         });
@@ -3459,7 +3571,7 @@
             human.taskCommitMs = 1400;
             moveVector = normalize(human.x - nearbyPredator.x, human.y - nearbyPredator.y);
             human.energy = Math.max(0, human.energy - dtMs * 0.004);
-            if (distanceSq(human.x, human.y, nearbyPredator.x, nearbyPredator.y) <= 28 * 28) {
+            if (!isHumanInsideBase(human) && distanceSq(human.x, human.y, nearbyPredator.x, nearbyPredator.y) <= 28 * 28) {
               human.health = Math.max(0, human.health - dtMs * 0.018 * (SPECIES_MAP[nearbyPredator.speciesId].threat / 40));
             }
           }
@@ -3482,7 +3594,7 @@
           const survivalPressureNow = criticalWater || criticalFood || risk.criticalHealth || risk.recentDamage || human.health < (42 + longevityUrgency * 1.1);
           const baseWoodAvailable = (human.inventory.wood || 0) + getBaseStock(nearestBase, 'wood');
           const baseStoneAvailable = (human.inventory.stone || 0) + getBaseStock(nearestBase, 'stone');
-          const canReproduce = human.ageMs >= HUMAN_MATURE_AGE_MS && human.reproductionCooldownMs <= 0 && human.health > (lineagePressure >= 8 ? 42 : 48) && human.energy > (lineagePressure >= 8 ? 18 : 22) && human.hunger < (lineagePressure >= 8 ? 82 : 76) && human.thirst < (lineagePressure >= 8 ? 80 : 74) && humans.length < HUMAN_POPULATION_CAP && !!nearestBase;
+          const canReproduce = human.ageMs >= HUMAN_MATURE_AGE_MS && human.reproductionCooldownMs <= 0 && human.health > (lineagePressure >= 8 ? 42 : 48) && human.energy > (lineagePressure >= 8 ? 18 : 22) && human.hunger < (lineagePressure >= 8 ? 82 : 76) && human.thirst < (lineagePressure >= 8 ? 80 : 74) && humans.length < HUMAN_POPULATION_CAP && !!nearestBase && getBaseResidentCount(nearestBase) <= HUMAN_BASE_CAPACITY;
           const carryingResources = human.inventory.food + human.inventory.water + human.inventory.meat + human.inventory.wood + human.inventory.stone + human.inventory.medicine > 12;
           const needsHeal = human.knownActions.includes('curar') && !!nearestBase && (human.health < 82 || risk.recentDamage);
           const needsMoreBases = bases.length < desiredBaseCount;
@@ -3491,16 +3603,18 @@
           const siteNeedsStone = activeBuildSite ? getBuildSiteMissing(activeBuildSite, 'stone') > 0.4 : false;
           const buildReadiness = getBaseBuildReadiness(human, nearestBase);
           const buildUrgencyFactor = baseUrgency > 0 ? Math.max(0.32, 0.6 - baseUrgency * 0.015 - lineagePressure * 0.01) : Math.max(0.34, 0.6 - lineagePressure * 0.01);
-          const tribeBuildSoon = !nearestBase && !buildSites.length && collectiveWood >= HUMAN_BASE_BUILD_COST.wood * buildUrgencyFactor && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * buildUrgencyFactor;
-          const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !buildSites.length && human.ageMs >= HUMAN_MATURE_AGE_MS * 0.55 && ((buildReadiness.members >= 2 && buildReadiness.canBuildSoon) || tribeBuildSoon);
-          const shouldContributeToBuild = !!activeBuildSite && ((human.inventory.wood || 0) > 0.4 || (human.inventory.stone || 0) > 0.4 || buildReadiness.siteReady);
-          const tribeNeedsBaseUrgently = !nearestBase && (buildReadiness.canBuildSoon || buildReadiness.siteReady || tribeBuildSoon || (lineagePressure >= 8 && buildReadiness.members >= 2)) && !criticalWater && !criticalFood;
+          const tribeBuildSoon = !nearestBase && !buildSites.length && buildReadiness.workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && collectiveWood >= HUMAN_BASE_BUILD_COST.wood * buildUrgencyFactor && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * buildUrgencyFactor;
+          const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !buildSites.length && human.ageMs >= HUMAN_MATURE_AGE_MS * 0.55 && ((buildReadiness.workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && buildReadiness.canBuildSoon) || tribeBuildSoon);
+          const shouldContributeToBuild = !!activeBuildSite && buildReadiness.workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && ((human.inventory.wood || 0) > 0.4 || (human.inventory.stone || 0) > 0.4 || buildReadiness.siteReady);
+          const tribeNeedsBaseUrgently = !nearestBase && buildReadiness.workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && (buildReadiness.canBuildSoon || buildReadiness.siteReady || tribeBuildSoon || (lineagePressure >= 8 && buildReadiness.members >= HUMAN_BASE_REQUIRED_BUILDERS)) && !criticalWater && !criticalFood;
           const needsWood = human.knownActions.includes('coletar madeira') && ((needsMoreBases && (!nearestBase || !activeBuildSite || siteNeedsWood || collectiveWood + (activeBuildSite ? activeBuildSite.stored.wood : 0) < HUMAN_BASE_BUILD_COST.wood)) || (nearestBase && getBaseStock(nearestBase, 'wood') < 10) || (lineagePressure >= 8 && !nearestBase && collectiveWood < HUMAN_BASE_BUILD_COST.wood));
           const needsStone = human.knownActions.includes('coletar pedra') && ((needsMoreBases && (!nearestBase || !activeBuildSite || siteNeedsStone || collectiveStone + (activeBuildSite ? activeBuildSite.stored.stone : 0) < HUMAN_BASE_BUILD_COST.stone)) || (nearestBase && getBaseStock(nearestBase, 'stone') < 8) || (lineagePressure >= 8 && !nearestBase && collectiveStone < HUMAN_BASE_BUILD_COST.stone));
           const baseNeedsFood = nearestBase && (getBaseStock(nearestBase, 'food') + getBaseStock(nearestBase, 'meat')) < Math.max(6, humans.length * 0.7);
           const baseNeedsWater = nearestBase && getBaseStock(nearestBase, 'water') < Math.max(6, humans.length * 0.75);
           const baseNeedsRepair = nearestBase && nearestBase.integrity < 78 && (human.inventory.wood > 1 || human.inventory.stone > 1);
           const wantsKnowledgeExchange = human.knownActions.includes('trocar informações') && nearbyHuman && (!survivalPressureNow || shareUrgency >= 4) && (human.aidCooldownMs || 0) <= 0 && humansCanExchangeKnowledge(human, nearbyHuman);
+          const nearbyBuilder = activeBuildSite ? findNearestHuman(human, TILE_SIZE * 3.2, (other) => other.alive && other.id !== human.id && (other.targetKind === 'buildBase' || other.targetKind === 'shareResources')) : null;
+          const shouldShareResources = human.knownActions.includes('compartilhar recursos') && !!activeBuildSite && !!nearbyBuilder && buildReadiness.workerCount >= HUMAN_BASE_REQUIRED_BUILDERS && (((human.inventory.wood || 0) > 1.4 && getBuildSiteMissing(activeBuildSite, 'wood') > 0.4) || ((human.inventory.stone || 0) > 1.4 && getBuildSiteMissing(activeBuildSite, 'stone') > 0.4));
           const shouldCraftForSurvival = ((human.inventory.weapon || 0) < 1) && (((human.inventory.wood || 0) + getBaseStock(nearestBase, 'wood')) >= 3) && (((human.inventory.stone || 0) + getBaseStock(nearestBase, 'stone')) >= 2) && !criticalWater && !criticalFood && (tribeUnderArmed || risk.recentDamage || human.health < 88 || weaponUrgency >= 4);
           const feelsCrowded = !!nearbyHuman && distanceSq(human.x, human.y, nearbyHuman.x, nearbyHuman.y) < (TILE_SIZE * 1.7) ** 2;
           const hasCommittedTask = human.taskCommitMs > 0 && !survivalPressureNow && !feelsCrowded;
@@ -3579,6 +3693,8 @@
               }
             } else if (wantsKnowledgeExchange) {
               assignHumanTarget(human, 'knowledgeShare', 'knowledgeShare', nearbyHuman.x, nearbyHuman.y, `human:${nearbyHuman.id}`, 1800);
+            } else if (shouldShareResources) {
+              assignHumanTarget(human, 'shareResources', 'shareResources', activeBuildSite.x, activeBuildSite.y, `site:${activeBuildSite.id}`, 2600);
             } else if (tribeNeedsBaseUrgently && activeBuildSite) {
               assignHumanTarget(human, 'buildBase', 'buildBase', activeBuildSite.x, activeBuildSite.y, `site:${activeBuildSite.id}`, 5200);
             } else if (canStartBuildSite) {
@@ -3674,7 +3790,7 @@
           if (human.mode !== 'rest' && human.mode !== 'heal') {
             moveVector = normalize(human.targetX - human.x, human.targetY - human.y);
             const separation = computeHumanSeparationVector(human, human.targetKind === 'defend' ? TILE_SIZE * 2.2 : TILE_SIZE * 3.6);
-            if (separation && ['wander', 'forage', 'gatherWood', 'gatherStone', 'fish', 'scavenge', 'aidAlly', 'water', 'hunt'].includes(human.targetKind)) {
+            if (separation && ['wander', 'forage', 'gatherWood', 'gatherStone', 'fish', 'scavenge', 'aidAlly', 'water', 'hunt', 'shareResources'].includes(human.targetKind)) {
               const sepWeight = human.targetKind === 'hunt' ? 0.35 : 0.85;
               moveVector = normalize(moveVector.x * 0.78 + separation.x * sepWeight, moveVector.y * 0.78 + separation.y * sepWeight);
             }
@@ -3770,7 +3886,7 @@
               <div class="species-info">
                 <div class="species-name">${human.name} • G${human.generation} • ${human.sex}</div>
                 <div class="species-sub">${humanReadableMode(human.mode)} • Vida ${Math.round(human.health)} • Fome ${Math.round(human.hunger)} • Sede ${Math.round(human.thirst)}</div>
-                <div class="species-sub">Base ${homeBase ? homeBase.name : 'nenhuma'} • Ações ${knownActions} • Madeira ${Math.round(human.inventory.wood)} • Pedra ${Math.round(human.inventory.stone)} • Arma ${(human.inventory.weapon || 0) > 0 ? 'Sim' : 'Não'} • Tocha ${(human.inventory.torch || 0) > 0 ? 'Sim' : 'Não'}</div>
+                <div class="species-sub">Base ${homeBase ? `${homeBase.name} (${getBaseResidentCount(homeBase)}/${HUMAN_BASE_CAPACITY})` : 'nenhuma'} • Ações ${knownActions} • Madeira ${Math.round(human.inventory.wood)} • Pedra ${Math.round(human.inventory.stone)} • Arma ${(human.inventory.weapon || 0) > 0 ? 'Sim' : 'Não'} • Tocha ${(human.inventory.torch || 0) > 0 ? 'Sim' : 'Não'}</div>
               </div>
             </div>
             <div class="species-meta">
