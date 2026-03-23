@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerador de Mundo Evolutivo</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
+    * { box-sizing: border-box; }
+    html, body {
       margin: 0;
       width: 100%;
       height: 100%;
@@ -49,7 +44,7 @@
       border-radius: 14px;
       background: rgba(15, 23, 42, 0.88);
       border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
       backdrop-filter: blur(6px);
       z-index: 2;
     }
@@ -106,7 +101,7 @@
       border-radius: 14px;
       background: rgba(15, 23, 42, 0.88);
       border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
       backdrop-filter: blur(6px);
       z-index: 2;
     }
@@ -147,7 +142,7 @@
       min-width: 0;
     }
 
-    .resource-entry>span:last-child {
+    .resource-entry > span:last-child {
       min-width: 0;
       line-height: 1.35;
     }
@@ -260,7 +255,7 @@
       height: 12px;
       border-radius: 999px;
       flex: 0 0 auto;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255,255,255,0.2);
     }
 
 
@@ -336,64 +331,233 @@
         bottom: 64px;
       }
 
+  
 
+    .collapse-panel {
+      overflow: hidden;
+    }
 
-      .collapse-panel {
-        overflow: hidden;
-      }
+    .collapse-panel summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 700;
+      margin: 0;
+      padding: 0;
+      color: #f8fafc;
+      user-select: none;
+    }
 
-      .collapse-panel summary {
-        list-style: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        font-weight: 700;
-        margin: 0;
-        padding: 0;
-        color: #f8fafc;
-        user-select: none;
-      }
+    .collapse-panel summary::-webkit-details-marker {
+      display: none;
+    }
 
-      .collapse-panel summary::-webkit-details-marker {
-        display: none;
-      }
+    .collapse-title {
+      font-size: 18px;
+      line-height: 1.2;
+    }
 
-      .collapse-title {
-        font-size: 18px;
-        line-height: 1.2;
-      }
+    .legend .collapse-title {
+      font-size: 16px;
+    }
 
-      .legend .collapse-title {
-        font-size: 16px;
-      }
+    .collapse-arrow {
+      font-size: 16px;
+      color: #93c5fd;
+      transition: transform 0.2s ease;
+      flex: 0 0 auto;
+    }
 
-      .collapse-arrow {
-        font-size: 16px;
-        color: #93c5fd;
-        transition: transform 0.2s ease;
-        flex: 0 0 auto;
-      }
+    .collapse-panel[open] .collapse-arrow {
+      transform: rotate(90deg);
+    }
 
-      .collapse-panel[open] .collapse-arrow {
-        transform: rotate(90deg);
-      }
+    .collapse-content {
+      margin-top: 10px;
+    }
 
-      .collapse-content {
-        margin-top: 10px;
-      }
-
-      .footer-tip {
+    .footer-tip {
         width: calc(100vw - 32px);
         white-space: normal;
         text-align: center;
         border-radius: 14px;
       }
     }
+
+
+    .cycle-modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 6, 23, 0.74);
+      backdrop-filter: blur(4px);
+      z-index: 30;
+    }
+
+    .cycle-modal-overlay.open {
+      display: flex;
+    }
+
+    .cycle-modal {
+      width: min(920px, calc(100vw - 32px));
+      max-height: min(86vh, 900px);
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cycle-modal-header {
+      padding: 20px 22px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .cycle-modal-title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      color: #f8fafc;
+    }
+
+    .cycle-modal-subtitle {
+      margin: 8px 0 0;
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .cycle-modal-body {
+      padding: 18px 22px 22px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .cycle-modal-body::-webkit-scrollbar {
+      width: 9px;
+    }
+
+    .cycle-modal-body::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.42);
+      border-radius: 999px;
+    }
+
+    .cycle-modal-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .cycle-stat {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .cycle-stat-label {
+      font-size: 12px;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .cycle-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1.2;
+    }
+
+    .cycle-panels {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .cycle-panel {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(30, 41, 59, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      min-height: 140px;
+    }
+
+    .cycle-panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #f8fafc;
+    }
+
+    .cycle-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #e2e8f0;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .cycle-list li + li {
+      margin-top: 4px;
+    }
+
+    .cycle-note {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(14, 116, 144, 0.16);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      color: #dbeafe;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .cycle-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 22px 22px;
+    }
+
+    .cycle-button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    .cycle-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .cycle-button.primary {
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      color: white;
+    }
+
+    .cycle-button.secondary {
+      background: rgba(51, 65, 85, 0.9);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
   </style>
 </head>
-
 <body>
   <div id="app">
     <canvas id="world"></canvas>
@@ -413,18 +577,14 @@
             <div class="resource-entry"><span class="swatch" style="background:#a7f3d0"></span><span>Erva</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#60a5fa"></span><span>Água</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#f1c27d"></span><span>Abrigo</span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#6b4423"></span><span>Madeira</span>
-            </div>
-            <div class="resource-entry"><span class="swatch" style="background:#fca5a5"></span><span>Cogumelo</span>
-            </div>
+            <div class="resource-entry"><span class="swatch" style="background:#6b4423"></span><span>Madeira</span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#fca5a5"></span><span>Cogumelo</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#2e8b57"></span><span>Cacto</span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#c084fc"></span><span>Cristal</span>
-            </div>
+            <div class="resource-entry"><span class="swatch" style="background:#c084fc"></span><span>Cristal</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#9ca3af"></span><span>Pedra</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#cbd5e1"></span><span>Metal</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#84cc16"></span><span>Junco</span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#22c55e"></span><span>Planta
-                medicinal</span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#22c55e"></span><span>Planta medicinal</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#93c5fd"></span><span>Peixe</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#dbeafe"></span><span>Gelo</span></div>
             <div class="resource-entry"><span class="swatch" style="background:#86efac"></span><span>Musgo</span></div>
@@ -439,22 +599,15 @@
         </summary>
         <div class="collapse-content">
           <p>
-            Predadores, presas e carcaças criam uma cadeia alimentar. Quando uma espécie atinge o limite de nascimentos
-            restantes, ela pode desaparecer do mundo.
+            Predadores, presas e carcaças criam uma cadeia alimentar. Quando uma espécie atinge o limite de nascimentos restantes, ela pode desaparecer do mundo.
           </p>
           <div class="resource-grid">
-            <div class="resource-entry"><span class="swatch" style="background:#f59e0b"></span><span>Animais vivos:
-                <strong id="animalCountLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#b91c1c"></span><span>Carcaças: <strong
-                  id="carcassCountLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#38bdf8"></span><span>Nasc. totais
-                restantes: <strong id="birthBudgetLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#ef4444"></span><span>Espécies extintas:
-                <strong id="extinctSpeciesLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#f59e0b"></span><span>Animais vivos: <strong id="animalCountLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#b91c1c"></span><span>Carcaças: <strong id="carcassCountLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#38bdf8"></span><span>Nasc. totais restantes: <strong id="birthBudgetLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#ef4444"></span><span>Espécies extintas: <strong id="extinctSpeciesLabel">-</strong></span></div>
           </div>
-          <div class="fauna-scroll">
-            <div class="fauna-list" id="faunaLegend"></div>
-          </div>
+          <div class="fauna-scroll"><div class="fauna-list" id="faunaLegend"></div></div>
         </div>
       </details>
       <details class="collapse-panel" open>
@@ -464,26 +617,17 @@
         </summary>
         <div class="collapse-content">
           <p>
-            Os humanos agora podem caçar, pescar, coletar madeira e pedra, montar bases, guardar recursos, descansar em
-            abrigo, curar ferimentos e só reproduzir quando um macho e uma fêmea maduros se encontram em uma base.
+            Os humanos agora podem caçar, pescar, coletar madeira e pedra, montar bases, guardar recursos, descansar em abrigo, curar ferimentos e só reproduzir quando um macho e uma fêmea maduros se encontram em uma base.
           </p>
           <div class="resource-grid">
-            <div class="resource-entry"><span class="swatch" style="background:#fde68a"></span><span>Humanos vivos:
-                <strong id="humanCountLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#f97316"></span><span>Geração máxima:
-                <strong id="humanGenerationLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#38bdf8"></span><span>Sabedoria média:
-                <strong id="humanWisdomLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#34d399"></span><span>Eficiência média:
-                <strong id="humanEfficiencyLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#a78bfa"></span><span>Bases: <strong
-                  id="humanBaseLabel">-</strong></span></div>
-            <div class="resource-entry"><span class="swatch" style="background:#f472b6"></span><span>Ações desbloq.:
-                <strong id="humanActionLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#fde68a"></span><span>Humanos vivos: <strong id="humanCountLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#f97316"></span><span>Geração máxima: <strong id="humanGenerationLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#38bdf8"></span><span>Sabedoria média: <strong id="humanWisdomLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#34d399"></span><span>Eficiência média: <strong id="humanEfficiencyLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#a78bfa"></span><span>Bases: <strong id="humanBaseLabel">-</strong></span></div>
+            <div class="resource-entry"><span class="swatch" style="background:#f472b6"></span><span>Ações desbloq.: <strong id="humanActionLabel">-</strong></span></div>
           </div>
-          <div class="fauna-scroll">
-            <div class="fauna-list" id="humanLegend"></div>
-          </div>
+          <div class="fauna-scroll"><div class="fauna-list" id="humanLegend"></div></div>
         </div>
       </details>
     </div>
@@ -495,31 +639,38 @@
           <span class="collapse-arrow">▶</span>
         </summary>
         <div class="collapse-content">
-          <div class="legend-item"><span class="swatch" style="background:#67c16f"></span>Planície: frutas, ervas,
-            pequenos lagos</div>
-          <div class="legend-item"><span class="swatch" style="background:#2f7d32"></span>Floresta: madeira, frutos,
-            cogumelos</div>
-          <div class="legend-item"><span class="swatch" style="background:#c2a36a"></span>Deserto: cactos, cristais,
-            poços raros</div>
-          <div class="legend-item"><span class="swatch" style="background:#8e6b3f"></span>Montanha: pedra, metal, ninhos
-          </div>
-          <div class="legend-item"><span class="swatch" style="background:#5bc0de"></span>Pântano: água, juncos, plantas
-            medicinais</div>
-          <div class="legend-item"><span class="swatch" style="background:#4f86f7"></span>Lagos e rios: água e peixes
-          </div>
-          <div class="legend-item"><span class="swatch" style="background:#9bd4ff"></span>Neve: gelo, musgo frio, abrigo
-            raro</div>
+          <div class="legend-item"><span class="swatch" style="background:#67c16f"></span>Planície: frutas, ervas, pequenos lagos</div>
+          <div class="legend-item"><span class="swatch" style="background:#2f7d32"></span>Floresta: madeira, frutos, cogumelos</div>
+          <div class="legend-item"><span class="swatch" style="background:#c2a36a"></span>Deserto: cactos, cristais, poços raros</div>
+          <div class="legend-item"><span class="swatch" style="background:#8e6b3f"></span>Montanha: pedra, metal, ninhos</div>
+          <div class="legend-item"><span class="swatch" style="background:#5bc0de"></span>Pântano: água, juncos, plantas medicinais</div>
+          <div class="legend-item"><span class="swatch" style="background:#4f86f7"></span>Lagos e rios: água e peixes</div>
+          <div class="legend-item"><span class="swatch" style="background:#9bd4ff"></span>Neve: gelo, musgo frio, abrigo raro</div>
         </div>
       </details>
     </div>
 
     <div class="footer-tip">
-      Arraste para mover a câmera • Use a roda do mouse para zoom • Pressione R para gerar um novo mundo • Espaço pausa
-      a fauna
+      Arraste para mover a câmera • Use a roda do mouse para zoom • Pressione R para gerar um novo mundo • Espaço pausa a fauna
     </div>
   </div>
 
+    <div class="cycle-modal-overlay" id="cycleModalOverlay" aria-hidden="true">
+      <div class="cycle-modal" role="dialog" aria-modal="true" aria-labelledby="cycleModalTitle">
+        <div class="cycle-modal-header">
+          <h2 class="cycle-modal-title" id="cycleModalTitle">A humanidade foi extinta</h2>
+          <p class="cycle-modal-subtitle" id="cycleModalSubtitle">Os registros deste ciclo serão usados para guiar a próxima civilização.</p>
+        </div>
+        <div class="cycle-modal-body" id="cycleModalBody"></div>
+        <div class="cycle-modal-actions">
+          <button class="cycle-button secondary" id="cycleModalCloseButton" type="button">Fechar resumo</button>
+          <button class="cycle-button primary" id="cycleModalRestartButton" type="button">Recomeçar próximo ciclo</button>
+        </div>
+      </div>
+    </div>
 
+
+  
   <script>
     const canvas = document.getElementById('world');
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -550,8 +701,8 @@
     const SIM_TICK_MS = 140;
     const HUMAN_DRAW_ZOOM_THRESHOLD = 0.14;
     const ENTITY_LABEL_ZOOM_THRESHOLD = 0.2;
-    const HUMAN_POPULATION_CAP = 48;
-    const HUMAN_MATURE_AGE_MS = 90000;
+    const HUMAN_POPULATION_CAP = 20;
+    const HUMAN_MATURE_AGE_MS = 36000;
     const HOSTILE_TO_HUMANS = new Set(['wolf', 'lynx', 'bear', 'hyena', 'crocodile', 'eagle', 'boar']);
     const HUMAN_MAX_AGE_MS = 380000;
     const HUMAN_REPRODUCTION_DISTANCE = 26;
@@ -565,6 +716,8 @@
     const HUMAN_DIRECT_FOOD_TYPES = new Set(['berry', 'mushroom', 'cactus', 'fish']);
     const HUMAN_GROUP_DEFENSE_RADIUS = TILE_SIZE * 5.2;
     const HUMAN_ALLY_SUPPORT_RADIUS = TILE_SIZE * 6.5;
+    const HUMAN_AUTO_SHARE_RADIUS = TILE_SIZE * 3.2;
+    const HUMAN_GROUP_BUILD_RADIUS = TILE_SIZE * 7.5;
 
     const worldSizeLabel = document.getElementById('worldSize');
     const resourceCountLabel = document.getElementById('resourceCount');
@@ -582,6 +735,13 @@
     const humanBaseLabel = document.getElementById('humanBaseLabel');
     const humanActionLabel = document.getElementById('humanActionLabel');
     const humanLegend = document.getElementById('humanLegend');
+
+    const cycleModalOverlay = document.getElementById('cycleModalOverlay');
+    const cycleModalBody = document.getElementById('cycleModalBody');
+    const cycleModalTitle = document.getElementById('cycleModalTitle');
+    const cycleModalSubtitle = document.getElementById('cycleModalSubtitle');
+    const cycleModalRestartButton = document.getElementById('cycleModalRestartButton');
+    const cycleModalCloseButton = document.getElementById('cycleModalCloseButton');
 
     function focusCameraOnHuman(humanId) {
       const human = humans.find((item) => item.id === humanId && item.alive);
@@ -676,6 +836,7 @@
     let bases = [];
     let buildSites = [];
     let initialHumanFocus = null;
+    let tribeKnowledge = {};
     const ALL_HUMAN_ACTIONS = ['beber', 'coletar', 'vasculhar', 'caçar', 'acasalamento', 'coletar madeira', 'coletar pedra', 'construir base', 'armazenar', 'descansar na base', 'pescar', 'curar', 'proteger base', 'ajudar aliado', 'trocar informações'];
     const societyUnlocks = new Set(ALL_HUMAN_ACTIONS);
     let respawnQueue = [];
@@ -688,6 +849,18 @@
     let buildSiteIdCounter = 0;
     let simRunning = true;
     let simulationLoopId = null;
+    let simulationTimeMs = 0;
+    let totalBasesBuiltThisRun = 0;
+    let currentRunActionTotals = {};
+    let currentRunDeathRecords = [];
+    let currentRunChildrenBorn = 0;
+    let currentRunHumansBorn = 0;
+    let currentRunGeneSums = { wisdom: 0, efficiency: 0 };
+    let civilizationArchive = createEmptyCivilizationArchive();
+
+    let extinctionModalActive = false;
+    let currentCycleFinalized = false;
+    let currentCycleSummary = null;
 
     let camera = {
       x: WORLD_WIDTH * 0.5,
@@ -715,7 +888,7 @@
     }
 
     function mulberry32(seed) {
-      return function () {
+      return function() {
         let t = seed += 0x6D2B79F5;
         t = Math.imul(t ^ t >>> 15, t | 1);
         t ^= t + Math.imul(t ^ t >>> 7, t | 61);
@@ -1046,7 +1219,7 @@
       const group = [human, ...allies];
       const totalPower = group.reduce((sum, member) => sum + estimateHumanCombatPower(member), 0);
       const defendersWithWeapons = group.filter((member) => (member.inventory.weapon || 0) > 0).length;
-      return group.length >= 2 && (totalPower >= species.threat * 1.45 || (defendersWithWeapons >= 2 && totalPower >= species.threat * 1.1));
+      return group.length >= 2 && (totalPower >= species.threat * 1.28 || (defendersWithWeapons >= 1 && totalPower >= species.threat * 1.02));
     }
 
     function tryCraftHumanTools(human, base = null) {
@@ -1070,6 +1243,7 @@
         human.inventory.weapon = 1;
         human.mode = 'craftWeapon';
         human.taskCommitMs = Math.max(human.taskCommitMs || 0, 1800);
+        recordHumanAction(human, 'craftWeapon', 'fabricou arma', true);
         crafted = true;
       }
 
@@ -1082,6 +1256,7 @@
         human.inventory.torch = 1;
         if (!crafted) human.mode = 'craftTorch';
         human.taskCommitMs = Math.max(human.taskCommitMs || 0, 1200);
+        recordHumanAction(human, 'craftTorch', 'fabricou tocha', true);
         crafted = true;
       }
 
@@ -1302,11 +1477,11 @@
         const biomeData = BIOMES[tile.biome];
         const climateBonus = (
           tile.biome === 'forest' ? tile.humidityValue * 0.12 :
-            tile.biome === 'desert' ? (1 - tile.humidityValue) * 0.12 :
-              tile.biome === 'snow' ? (1 - tile.temperatureValue) * 0.12 :
-                tile.biome === 'mountain' ? tile.heightValue * 0.12 :
-                  tile.biome === 'swamp' ? tile.humidityValue * 0.1 :
-                    tile.biome === 'lake' ? 0.08 : 0.06
+          tile.biome === 'desert' ? (1 - tile.humidityValue) * 0.12 :
+          tile.biome === 'snow' ? (1 - tile.temperatureValue) * 0.12 :
+          tile.biome === 'mountain' ? tile.heightValue * 0.12 :
+          tile.biome === 'swamp' ? tile.humidityValue * 0.1 :
+          tile.biome === 'lake' ? 0.08 : 0.06
         );
 
         const primaryDensity = Math.min(0.58, biomeData.resourceDensity + climateBonus);
@@ -1754,6 +1929,7 @@
 
       if (getBuildSiteMissing(site, 'wood') <= 0 && getBuildSiteMissing(site, 'stone') <= 0) {
         const base = createBase(site.x, site.y, null);
+        tribeKnowledge.base = { x: base.x, y: base.y, refId: base.id, ttlMs: 120000 };
         const nearbyHumans = humans.filter((other) => other.alive && distanceSq(other.x, other.y, site.x, site.y) <= (TILE_SIZE * 8) ** 2);
         for (const other of nearbyHumans) {
           other.homeBaseId = base.id;
@@ -1785,6 +1961,10 @@
         }
       };
       bases.push(base);
+      totalBasesBuiltThisRun += 1;
+      if (builder) {
+        recordHumanAction(builder, 'buildBase', `${base.name} concluída`, true);
+      }
       return base;
     }
 
@@ -1903,13 +2083,22 @@
     }
 
     function createHumanGenes(rng) {
+      const inheritedWisdom = civilizationArchive && civilizationArchive.lastAverageWisdom != null
+        ? civilizationArchive.lastAverageWisdom
+        : 0.5;
+      const inheritedEfficiency = civilizationArchive && civilizationArchive.lastAverageEfficiency != null
+        ? civilizationArchive.lastAverageEfficiency
+        : 0.5;
+      const inheritedFertilityBoost = civilizationArchive && civilizationArchive.lessons
+        ? clamp((civilizationArchive.lessons.reproductionUrgency || 0) * 0.018, 0, 0.18)
+        : 0;
       return {
         speed: Number(rng().toFixed(3)),
         vision: Number(rng().toFixed(3)),
         courage: Number(rng().toFixed(3)),
-        efficiency: Number(rng().toFixed(3)),
-        fertility: Number(rng().toFixed(3)),
-        wisdom: Number(rng().toFixed(3))
+        efficiency: Number(clamp((rng() * 0.58) + (inheritedEfficiency * 0.42), 0.02, 0.98).toFixed(3)),
+        fertility: Number(clamp((rng() * 0.76) + inheritedFertilityBoost, 0.02, 0.98).toFixed(3)),
+        wisdom: Number(clamp((rng() * 0.58) + (inheritedWisdom * 0.42), 0.02, 0.98).toFixed(3))
       };
     }
 
@@ -1950,9 +2139,304 @@
       return labels[mode] || 'Explorando';
     }
 
+    function createEmptyCivilizationArchive() {
+      return {
+        cycles: 0,
+        totalBasesBuilt: 0,
+        totalChildrenBorn: 0,
+        totalAverageWisdomSum: 0,
+        totalAverageEfficiencySum: 0,
+        lastAverageWisdom: 0.5,
+        lastAverageEfficiency: 0.5,
+        actionTotals: {},
+        deathTotals: {},
+        ancestorDeaths: [],
+        lastRun: null,
+        lessons: {
+          waterUrgency: 0,
+          foodUrgency: 0,
+          baseUrgency: 0,
+          weaponUrgency: 0,
+          shareUrgency: 0,
+          reproductionUrgency: 0
+        }
+      };
+    }
+
+    function incrementCounter(mapLike, key, amount = 1) {
+      if (!mapLike || !key) return;
+      mapLike[key] = (mapLike[key] || 0) + amount;
+    }
+
+    function formatElapsedMs(ms = 0) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function simplifyHumanAction(actionKey) {
+      return humanReadableMode(actionKey);
+    }
+
+    function recordHumanAction(human, actionKey, detail = '', force = false) {
+      if (!human || !human.alive) return;
+      const signature = `${actionKey}|${detail}`;
+      if (!force && human.lastActionSignature === signature && (simulationTimeMs - (human.lastActionLoggedAt || 0)) < 2200) {
+        return;
+      }
+
+      human.lastActionSignature = signature;
+      human.lastActionLoggedAt = simulationTimeMs;
+      human.lastLoggedMode = actionKey;
+      const entry = {
+        tempo: formatElapsedMs(simulationTimeMs),
+        idade: formatElapsedMs(human.ageMs),
+        acao: simplifyHumanAction(actionKey),
+        detalhe: detail || '-',
+        vida: Math.round(human.health),
+        fome: Math.round(human.hunger),
+        sede: Math.round(human.thirst),
+        energia: Math.round(human.energy)
+      };
+      human.actionLog.push(entry);
+      if (human.actionLog.length > 24) human.actionLog.shift();
+      incrementCounter(human.actionCounts, actionKey, 1);
+      incrementCounter(currentRunActionTotals, actionKey, 1);
+    }
+
+    function syncHumanModeLog(human) {
+      if (!human || !human.alive) return;
+      if (human.lastLoggedMode !== human.mode) {
+        recordHumanAction(human, human.mode, `alvo: ${human.targetKind || 'nenhum'}`, true);
+      }
+    }
+
+    function summarizeTopEntries(record, limit = 6) {
+      return Object.entries(record || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([nome, total]) => ({ nome, total }));
+    }
+
+    function captureCurrentCivilizationRun() {
+      const averageWisdom = currentRunHumansBorn > 0 ? currentRunGeneSums.wisdom / currentRunHumansBorn : 0;
+      const averageEfficiency = currentRunHumansBorn > 0 ? currentRunGeneSums.efficiency / currentRunHumansBorn : 0;
+      return {
+        elapsedMs: simulationTimeMs,
+        basesBuilt: totalBasesBuiltThisRun,
+        childrenBorn: currentRunChildrenBorn,
+        averageWisdom,
+        averageEfficiency,
+        actionTotals: { ...currentRunActionTotals },
+        deathRecords: currentRunDeathRecords.map((item) => ({ ...item, recentActions: item.recentActions ? [...item.recentActions] : [] })),
+        livingHumans: humans.length,
+        deathsByReason: currentRunDeathRecords.reduce((acc, item) => {
+          incrementCounter(acc, item.reason, 1);
+          return acc;
+        }, {})
+      };
+    }
+
+    function deriveCivilizationLessons(archive) {
+      const deaths = archive.deathTotals || {};
+      const actions = archive.actionTotals || {};
+      const cycles = Math.max(1, archive.cycles || 1);
+      const hydrationDeaths = (deaths['desidratação'] || 0) + (deaths['fome e sede extremas'] || 0);
+      const foodDeaths = (deaths['fome'] || 0) + (deaths['fome e sede extremas'] || 0);
+      const violentDeaths = (deaths['ataque de animal hostil'] || 0) + (deaths['ferimentos'] || 0);
+      const childlessOldAgeDeaths = (deaths['velhice sem descendentes'] || 0);
+      const shareCount = actions['knowledgeShare'] || 0;
+      const buildCount = actions['buildBase'] || 0;
+      const weaponCount = actions['craftWeapon'] || 0;
+      const mateCount = actions['mate'] || 0;
+      const totalChildrenBorn = archive.totalChildrenBorn || 0;
+      const childrenPerCycle = totalChildrenBorn / cycles;
+      const avgBasesPerCycle = (archive.totalBasesBuilt || 0) / cycles;
+      return {
+        waterUrgency: clamp(Math.round(hydrationDeaths / cycles) * 3, 0, 14),
+        foodUrgency: clamp(Math.round(foodDeaths / cycles) * 3, 0, 14),
+        baseUrgency: clamp(Math.max(0, 10 - avgBasesPerCycle * 2) + Math.max(0, 6 - buildCount / cycles) + Math.max(0, 4 - childrenPerCycle), 0, 18),
+        weaponUrgency: clamp(Math.round(violentDeaths / cycles) * 3 + Math.max(0, 4 - weaponCount / cycles), 0, 14),
+        shareUrgency: clamp(Math.max(0, 8 - Math.round(shareCount / cycles)), 0, 12),
+        reproductionUrgency: clamp(Math.round(childlessOldAgeDeaths / cycles) * 4 + Math.max(0, 6 - childrenPerCycle * 2) + Math.max(0, 4 - mateCount / cycles), 0, 20)
+      };
+    }
+
+    function mergeRunIntoCivilizationArchive(run) {
+      civilizationArchive.cycles += 1;
+      civilizationArchive.totalBasesBuilt += run.basesBuilt || 0;
+      civilizationArchive.totalChildrenBorn += run.childrenBorn || 0;
+      civilizationArchive.totalAverageWisdomSum += run.averageWisdom || 0;
+      civilizationArchive.totalAverageEfficiencySum += run.averageEfficiency || 0;
+      civilizationArchive.lastAverageWisdom = run.averageWisdom || civilizationArchive.lastAverageWisdom || 0.5;
+      civilizationArchive.lastAverageEfficiency = run.averageEfficiency || civilizationArchive.lastAverageEfficiency || 0.5;
+      for (const [action, total] of Object.entries(run.actionTotals || {})) {
+        incrementCounter(civilizationArchive.actionTotals, action, total);
+      }
+      for (const death of run.deathRecords || []) {
+        incrementCounter(civilizationArchive.deathTotals, death.reason, 1);
+      }
+      civilizationArchive.ancestorDeaths = [...civilizationArchive.ancestorDeaths, ...(run.deathRecords || [])].slice(-60);
+      civilizationArchive.lastRun = run;
+      civilizationArchive.lessons = deriveCivilizationLessons(civilizationArchive);
+      return civilizationArchive;
+    }
+
+    function logCivilizationInheritance(archive) {
+      if (!archive || !archive.cycles) return;
+      console.groupCollapsed(`🧠 Herança ancestral carregada • ciclo ${archive.cycles}`);
+      console.log('Bases construídas pelos antepassados:', archive.totalBasesBuilt);
+      console.log('Filhos gerados ao longo da história:', archive.totalChildrenBorn || 0);
+      console.log('Sabedoria média herdada:', `${Math.round((archive.lastAverageWisdom || 0) * 100)}%`);
+      console.log('Eficiência média herdada:', `${Math.round((archive.lastAverageEfficiency || 0) * 100)}%`);
+      console.log('Lições herdadas:', archive.lessons);
+      const topDeaths = summarizeTopEntries(archive.deathTotals, 6);
+      const topActions = summarizeTopEntries(archive.actionTotals, 8).map((item) => ({ acao: simplifyHumanAction(item.nome), total: item.total }));
+      if (topDeaths.length) console.table(topDeaths);
+      if (topActions.length) console.table(topActions);
+      console.groupEnd();
+    }
+
+
+
+    function humanizeLessonKey(key) {
+      const labels = {
+        waterUrgency: 'Priorizar água',
+        foodUrgency: 'Priorizar comida',
+        baseUrgency: 'Priorizar construção de base',
+        weaponUrgency: 'Priorizar armas',
+        shareUrgency: 'Priorizar troca de conhecimento',
+        reproductionUrgency: 'Priorizar continuidade da linhagem'
+      };
+      return labels[key] || key;
+    }
+
+    function formatTopList(items, emptyText, formatter = (item) => `${item.nome}: ${item.total}`) {
+      if (!items || !items.length) {
+        return `<li>${emptyText}</li>`;
+      }
+      return items.map((item) => `<li>${formatter(item)}</li>`).join('');
+    }
+
+    function finalizeCurrentCycle() {
+      if (currentCycleFinalized && currentCycleSummary) {
+        return currentCycleSummary;
+      }
+
+      const runSummary = captureCurrentCivilizationRun();
+      const inheritedArchive = mergeRunIntoCivilizationArchive(runSummary);
+      currentCycleSummary = {
+        runSummary,
+        inheritedArchive,
+        endedCycleNumber: inheritedArchive.cycles,
+        nextCycleNumber: inheritedArchive.cycles + 1
+      };
+      currentCycleFinalized = true;
+      return currentCycleSummary;
+    }
+
+    function closeCycleModal() {
+      if (!cycleModalOverlay) return;
+      cycleModalOverlay.classList.remove('open');
+      cycleModalOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function openCycleModal(summary) {
+      if (!cycleModalOverlay || !cycleModalBody || !summary) return;
+
+      const runSummary = summary.runSummary;
+      const archive = summary.inheritedArchive;
+      const topDeaths = summarizeTopEntries(runSummary.deathsByReason, 6);
+      const topActions = summarizeTopEntries(runSummary.actionTotals, 8).map((item) => ({
+        nome: simplifyHumanAction(item.nome),
+        total: item.total
+      }));
+      const topAncestorDeaths = summarizeTopEntries(archive.deathTotals, 6);
+      const inheritedLessons = Object.entries(archive.lessons || {})
+        .filter(([, value]) => value > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+      cycleModalTitle.textContent = `A humanidade foi extinta no ciclo ${summary.endedCycleNumber}`;
+      cycleModalSubtitle.textContent = `Deseja iniciar o ciclo ${summary.nextCycleNumber} usando a memória ancestral acumulada?`;
+
+      cycleModalBody.innerHTML = `
+        <div class="cycle-modal-grid">
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Ciclo encerrado</div>
+            <div class="cycle-stat-value">${summary.endedCycleNumber}</div>
+          </div>
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Tempo vivido</div>
+            <div class="cycle-stat-value">${formatElapsedMs(runSummary.elapsedMs)}</div>
+          </div>
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Bases construídas</div>
+            <div class="cycle-stat-value">${runSummary.basesBuilt}</div>
+          </div>
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Mortes registradas</div>
+            <div class="cycle-stat-value">${runSummary.deathRecords.length}</div>
+          </div>
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Filhos gerados</div>
+            <div class="cycle-stat-value">${runSummary.childrenBorn || 0}</div>
+          </div>
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Sabedoria média</div>
+            <div class="cycle-stat-value">${Math.round((runSummary.averageWisdom || 0) * 100)}%</div>
+          </div>
+          <div class="cycle-stat">
+            <div class="cycle-stat-label">Eficiência média</div>
+            <div class="cycle-stat-value">${Math.round((runSummary.averageEfficiency || 0) * 100)}%</div>
+          </div>
+        </div>
+        <div class="cycle-panels">
+          <section class="cycle-panel">
+            <h3>O que mais aconteceu neste ciclo</h3>
+            <ol class="cycle-list">${formatTopList(topActions, 'Nenhuma ação registrada.', (item) => `${item.nome}: <strong>${item.total}</strong>` )}</ol>
+          </section>
+          <section class="cycle-panel">
+            <h3>Principais causas de morte neste ciclo</h3>
+            <ol class="cycle-list">${formatTopList(topDeaths, 'Nenhuma morte registrada.', (item) => `${item.nome}: <strong>${item.total}</strong>` )}</ol>
+          </section>
+          <section class="cycle-panel">
+            <h3>Memória dos antepassados</h3>
+            <ol class="cycle-list">${formatTopList(topAncestorDeaths, 'Ainda não há histórico ancestral suficiente.', (item) => `${item.nome}: <strong>${item.total}</strong>` )}</ol>
+            <div class="cycle-note" style="margin-top:10px;">
+              <strong>Filhos ao longo da história:</strong> ${archive.totalChildrenBorn || 0}<br>
+              <strong>Sabedoria média herdada:</strong> ${Math.round((archive.lastAverageWisdom || 0) * 100)}%<br>
+              <strong>Eficiência média herdada:</strong> ${Math.round((archive.lastAverageEfficiency || 0) * 100)}%
+            </div>
+          </section>
+          <section class="cycle-panel">
+            <h3>Lições herdadas para o próximo ciclo</h3>
+            <ol class="cycle-list">${formatTopList(inheritedLessons.map(([nome, total]) => ({ nome, total })), 'Nenhuma lição forte foi consolidada ainda.', (item) => `${humanizeLessonKey(item.nome)}: <strong>${item.total}</strong>` )}</ol>
+          </section>
+        </div>
+        <div class="cycle-note">
+          <strong>Próximo ciclo:</strong> a nova civilização vai nascer no ciclo <strong>${summary.nextCycleNumber}</strong> com acesso ao conhecimento herdado sobre água, comida, construção, armas, cooperação, reprodução e erros mais comuns dos antepassados. Bases construídas ao longo da história: <strong>${archive.totalBasesBuilt}</strong>. Filhos gerados ao longo da história: <strong>${archive.totalChildrenBorn || 0}</strong>. Sabedoria média herdada: <strong>${Math.round((archive.lastAverageWisdom || 0) * 100)}%</strong>. Eficiência média herdada: <strong>${Math.round((archive.lastAverageEfficiency || 0) * 100)}%</strong>.
+        </div>
+      `;
+
+      cycleModalRestartButton.textContent = `Recomeçar ciclo ${summary.nextCycleNumber}`;
+      cycleModalOverlay.classList.add('open');
+      cycleModalOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function restartNextCycleFromSummary() {
+      const summary = finalizeCurrentCycle();
+      closeCycleModal();
+      regenerateWorld(summary.inheritedArchive);
+      simRunning = true;
+      requestRender();
+    }
 
     function createHumanFromGenes(tile, genes, rng, generation = 1, forcedSex = null) {
       const sex = forcedSex || (rng() < 0.5 ? 'M' : 'F');
+      currentRunHumansBorn += 1;
+      currentRunGeneSums.wisdom += genes.wisdom;
+      currentRunGeneSums.efficiency += genes.efficiency;
       return {
         id: ++humanIdCounter,
         name: `Humano ${String(humanIdCounter).padStart(2, '0')}`,
@@ -1964,22 +2448,22 @@
         targetY: tile.y + TILE_SIZE * 0.5,
         targetKind: 'wander',
         targetRefId: null,
-        decisionCooldownMs: randomBetween(rng, 0, 420),
+        decisionCooldownMs: randomBetween(rng, 0, 260),
         reproductionCooldownMs: randomBetween(rng, 18000, 42000),
         aidCooldownMs: 0,
         ageMs: generation === 1 ? randomBetween(rng, 18000, 56000) : 0,
         generation,
         genes,
         hunger: 50,
-        thirst: randomBetween(rng, 34, 42),
-        energy: randomBetween(rng, 88, 100),
+        thirst: randomBetween(rng, 24, 32),
+        energy: randomBetween(rng, 90, 100),
         health: 100,
         alive: true,
         sex,
         mode: 'wander',
         inventory: {
           food: 0,
-          water: 0,
+          water: 1.5,
           meat: 0,
           wood: 0,
           stone: 0,
@@ -2000,6 +2484,12 @@
           carcass: null,
           threat: null
         },
+        ancestralLessons: { ...(civilizationArchive.lessons || {}) },
+        actionLog: [],
+        actionCounts: {},
+        lastActionSignature: null,
+        lastActionLoggedAt: -Infinity,
+        lastLoggedMode: null,
         taskCommitMs: 0,
         stuckMs: 0,
         lastHealth: 100,
@@ -2179,8 +2669,49 @@
         b.mode = 'knowledgeShare';
         a.taskCommitMs = Math.max(a.taskCommitMs || 0, 900);
         b.taskCommitMs = Math.max(b.taskCommitMs || 0, 900);
+        recordHumanAction(a, 'knowledgeShare', `compartilhou com ${b.name}`, true);
+        recordHumanAction(b, 'knowledgeShare', `compartilhou com ${a.name}`, true);
       }
       return changed;
+    }
+
+    function autoShareKnowledgeForNearbyHumans() {
+      for (let i = 0; i < humans.length; i++) {
+        const human = humans[i];
+        if (!human.alive) continue;
+        const nearby = findNearbyHumans(human, HUMAN_AUTO_SHARE_RADIUS, (other) => other.alive);
+        for (const other of nearby) {
+          if (other.id <= human.id) continue;
+          exchangeKnowledgeBetweenHumans(human, other);
+        }
+      }
+    }
+
+    function getNearbyHumanGroupResources(human, radius = HUMAN_GROUP_BUILD_RADIUS) {
+      const nearby = findNearbyHumans(human, radius, (other) => other.alive);
+      const group = [human, ...nearby];
+      return group.reduce((acc, member) => {
+        acc.wood += member.inventory.wood || 0;
+        acc.stone += member.inventory.stone || 0;
+        acc.members += 1;
+        if ((member.inventory.weapon || 0) > 0) acc.weapons += 1;
+        return acc;
+      }, { wood: 0, stone: 0, members: 0, weapons: 0 });
+    }
+
+    function getBaseBuildReadiness(human, nearestBase = null) {
+      const group = getNearbyHumanGroupResources(human, HUMAN_GROUP_BUILD_RADIUS);
+      const buildSite = findNearestBuildSite(human, HUMAN_GROUP_BUILD_RADIUS);
+      const woodStored = buildSite ? (buildSite.stored.wood || 0) : 0;
+      const stoneStored = buildSite ? (buildSite.stored.stone || 0) : 0;
+      return {
+        groupWood: group.wood + woodStored,
+        groupStone: group.stone + stoneStored,
+        members: group.members,
+        weapons: group.weapons,
+        canBuildSoon: !nearestBase && (group.wood + woodStored) >= HUMAN_BASE_BUILD_COST.wood * 0.45 && (group.stone + stoneStored) >= HUMAN_BASE_BUILD_COST.stone * 0.45,
+        siteReady: !nearestBase && (group.wood + woodStored) >= HUMAN_BASE_BUILD_COST.wood && (group.stone + stoneStored) >= HUMAN_BASE_BUILD_COST.stone
+      };
     }
 
     function findHumanEmergencyTarget(human, needType, stats) {
@@ -2327,25 +2858,49 @@
       humanIdCounter = 0;
       baseIdCounter = 0;
       buildSiteIdCounter = 0;
+      totalBasesBuiltThisRun = 0;
+      currentRunActionTotals = {};
+      currentRunDeathRecords = [];
+      currentRunChildrenBorn = 0;
+      currentRunHumansBorn = 0;
+      currentRunGeneSums = { wisdom: 0, efficiency: 0 };
+      simulationTimeMs = 0;
 
       const seedTile = findBestSpawnTileForHumans(simulationRng);
+      tribeKnowledge = {};
+      if (civilizationArchive && civilizationArchive.cycles > 0) {
+        tribeKnowledge.ancestral = {
+          lessons: { ...(civilizationArchive.lessons || {}) },
+          totalBasesBuilt: civilizationArchive.totalBasesBuilt,
+          totalChildrenBorn: civilizationArchive.totalChildrenBorn || 0,
+          averageWisdom: civilizationArchive.lastAverageWisdom || 0.5,
+          averageEfficiency: civilizationArchive.lastAverageEfficiency || 0.5,
+          ancestorDeaths: civilizationArchive.ancestorDeaths.slice(-20)
+        };
+        logCivilizationInheritance(civilizationArchive);
+      }
       initialHumanFocus = {
         x: seedTile.x + TILE_SIZE * 0.5,
         y: seedTile.y + TILE_SIZE * 0.5
       };
 
-      const initialSexes = ['M', 'F', 'M', 'F', 'M', 'F', 'M', 'F', 'M', 'F'];
-      for (let i = 0; i < 10; i++) {
-        const angle = (Math.PI * 2 * i) / initialSexes.length + randomBetween(simulationRng, -0.18, 0.18);
-        const distance = randomBetween(simulationRng, TILE_SIZE * 1.2, TILE_SIZE * 3.8);
+      const initialPopulation = 20;
+      const initialSexes = Array.from({ length: initialPopulation }, (_, i) => i % 2 === 0 ? 'M' : 'F');
+      for (let i = 0; i < initialPopulation; i++) {
+        const angle = (Math.PI * 2 * i) / initialPopulation + randomBetween(simulationRng, -0.16, 0.16);
+        const distance = randomBetween(simulationRng, TILE_SIZE * 1.8, TILE_SIZE * 6.4);
         const tx = clamp(initialHumanFocus.x + Math.cos(angle) * distance, 0, WORLD_WIDTH);
         const ty = clamp(initialHumanFocus.y + Math.sin(angle) * distance, 0, WORLD_HEIGHT);
-        const tile = worldToTile(tx, ty) && isHumanCompatibleTile(worldToTile(tx, ty)) ? worldToTile(tx, ty) : seedTile;
+        const candidateTile = worldToTile(tx, ty);
+        const tile = candidateTile && isHumanCompatibleTile(candidateTile) ? candidateTile : seedTile;
         humans.push(createHumanFromGenes(tile, createHumanGenes(simulationRng), simulationRng, 1, initialSexes[i]));
         const created = humans[humans.length - 1];
         created.x = tx;
         created.y = ty;
         created.homeBaseId = null;
+        created.reproductionCooldownMs = randomBetween(simulationRng, 8000, 18000);
+        created.ageMs = randomBetween(simulationRng, 26000, 68000);
+        recordHumanAction(created, 'wander', 'início da nova civilização', true);
       }
 
       refreshSocietyUnlocks();
@@ -2372,52 +2927,65 @@
     }
 
     function consumeHumanInventory(human, dtMs) {
-      const hungerStep = dtMs * 0.00012;
-      const thirstStep = dtMs * 0.00015;
+      const hungerStep = dtMs * 0.000064;
+      const thirstStep = dtMs * 0.000088;
       human.hunger = clamp(human.hunger + hungerStep, 0, 100);
       human.thirst = clamp(human.thirst + thirstStep, 0, 100);
 
-      if (human.hunger > 60) {
-        if (human.inventory.meat >= 1) {
-          human.inventory.meat = Math.max(0, human.inventory.meat - 1.25);
-          human.hunger = Math.max(0, human.hunger - 40);
+      if (human.hunger > 58) {
+        if (human.inventory.meat >= 0.8) {
+          human.inventory.meat = Math.max(0, human.inventory.meat - 1.05);
+          human.hunger = Math.max(0, human.hunger - 34);
           human.energy = clamp(human.energy + 8, 0, 100);
-        } else if (human.inventory.food >= 1) {
-          human.inventory.food = Math.max(0, human.inventory.food - 1.1);
-          human.hunger = Math.max(0, human.hunger - 38);
+        } else if (human.inventory.food >= 0.8) {
+          human.inventory.food = Math.max(0, human.inventory.food - 1.0);
+          human.hunger = Math.max(0, human.hunger - 30);
           human.energy = clamp(human.energy + 5, 0, 100);
         }
       }
 
-      if (human.thirst > 54 && human.inventory.water >= 1) {
-        human.inventory.water = Math.max(0, human.inventory.water - 1.15);
-        human.thirst = Math.max(0, human.thirst - 52);
+      if (human.thirst > 52 && human.inventory.water >= 0.7) {
+        human.inventory.water = Math.max(0, human.inventory.water - 1.0);
+        human.thirst = Math.max(0, human.thirst - 42);
         human.energy = clamp(human.energy + 4, 0, 100);
       }
 
-      if (human.hunger > 80 && human.inventory.food + human.inventory.meat <= 0.2) {
-        human.energy = Math.max(0, human.energy - dtMs * 0.006);
+      if (human.hunger > 86 && human.inventory.food + human.inventory.meat <= 0.2) {
+        human.energy = Math.max(0, human.energy - dtMs * 0.0045);
       }
-      if (human.thirst > 78 && human.inventory.water <= 0.2) {
-        human.energy = Math.max(0, human.energy - dtMs * 0.008);
+      if (human.thirst > 82 && human.inventory.water <= 0.2) {
+        human.energy = Math.max(0, human.energy - dtMs * 0.0055);
       }
 
-      if (human.hunger > 90) {
-        human.health = Math.max(0, human.health - dtMs * 0.0021);
+      if (human.hunger > 95) {
+        human.health = Math.max(0, human.health - dtMs * 0.0007);
       }
-      if (human.thirst > 88) {
-        human.health = Math.max(0, human.health - dtMs * 0.0026);
+      if (human.thirst > 94) {
+        human.health = Math.max(0, human.health - dtMs * 0.00085);
       }
-      if (human.hunger > 97 || human.thirst > 96) {
-        human.health = Math.max(0, human.health - dtMs * 0.0042);
+      if (human.hunger > 98 || human.thirst > 98) {
+        human.health = Math.max(0, human.health - dtMs * 0.0015);
       }
-      if (human.energy < 6) {
-        human.health = Math.max(0, human.health - dtMs * 0.0022);
+      if (human.energy < 5) {
+        human.health = Math.max(0, human.health - dtMs * 0.00095);
       }
     }
 
     function isHumanCompatibleTile(tile) {
       return !!tile && HUMAN_ALLOWED_BIOMES.includes(tile.biome) && !tile.hasRiver;
+    }
+
+    function rememberTribeKnowledge(key, source, ttlMs = 42000) {
+      if (!source) return;
+      const current = tribeKnowledge[key];
+      if (!current || current.ttlMs < ttlMs * 0.65) {
+        tribeKnowledge[key] = {
+          x: source.x,
+          y: source.y,
+          refId: source.id || null,
+          ttlMs
+        };
+      }
     }
 
     function rememberHumanMemory(human, key, source, ttlMs = 38000) {
@@ -2428,6 +2996,17 @@
         refId: source.id || null,
         ttlMs
       };
+      rememberTribeKnowledge(key, source, ttlMs + 12000);
+    }
+
+    function decayTribeKnowledge(dtMs) {
+      for (const key of Object.keys(tribeKnowledge)) {
+        if (!tribeKnowledge[key]) continue;
+        tribeKnowledge[key].ttlMs -= dtMs;
+        if (tribeKnowledge[key].ttlMs <= 0) {
+          delete tribeKnowledge[key];
+        }
+      }
     }
 
     function decayHumanMemory(human, dtMs) {
@@ -2451,11 +3030,13 @@
       rememberHumanMemory(human, 'stone', findNearestResource(human, stats.vision * 1.1, new Set(['stone'])));
       rememberHumanMemory(human, 'fish', findNearestResource(human, stats.vision * 1.15, new Set(['fish'])));
       rememberHumanMemory(human, 'carcass', findNearestCarcass(human, stats.vision * 1.1));
+      const seenThreat = findNearestAnimal(human, stats.vision * 1.2, (animal) => isHostileToHumans(animal.speciesId));
+      if (seenThreat) rememberHumanMemory(human, 'threat', seenThreat, 28000);
     }
 
     function getHumanMemoryTarget(human, key) {
-      if (!human.memory || !human.memory[key]) return null;
-      const value = human.memory[key];
+      const value = (human.memory && human.memory[key]) ? human.memory[key] : tribeKnowledge[key];
+      if (!value) return null;
       return { x: value.x, y: value.y, ref: value.refId ? `${key}:${value.refId}` : `${key}:${Math.round(value.x)}:${Math.round(value.y)}` };
     }
 
@@ -2464,6 +3045,7 @@
       setHumanTarget(human, kind, x, y, ref);
       human.taskCommitMs = Math.max(human.taskCommitMs || 0, commitMs);
       human.decisionCooldownMs = Math.max(220, Math.min(commitMs * 0.5, 2200));
+      recordHumanAction(human, mode, kind || 'sem alvo');
     }
 
     function scoreExplorePoint(human, x, y, purpose = 'general') {
@@ -2530,9 +3112,12 @@
       const species = SPECIES_MAP[speciesId];
       if (!state || !species) return false;
       const stats = deriveHumanStats(human);
-      const safeFloor = Math.max(3, Math.floor(species.populationCap * (0.18 + (1 - stats.wisdom) * 0.16)));
-      if (stats.wisdom > 0.45 && (state.alive <= safeFloor || state.birthsRemaining <= 5)) return false;
-      if (species.threat > stats.threatTolerance + 12) return false;
+      const allyCount = findNearbyHumans(human, TILE_SIZE * 5.5, (other) => other.alive && other.id !== human.id).length;
+      const starvationPush = human.hunger > 72 ? 0.1 : human.hunger > 58 ? 0.04 : 0;
+      const safeFloor = Math.max(2, Math.floor(species.populationCap * (0.15 + (1 - stats.wisdom) * 0.12 - starvationPush)));
+      if (human.hunger < 72 && stats.wisdom > 0.52 && (state.alive <= safeFloor || state.birthsRemaining <= 4)) return false;
+      const threatAllowance = stats.threatTolerance + ((human.inventory.weapon || 0) > 0 ? 16 : 0) + Math.min(allyCount, 3) * 7;
+      if (species.threat > threatAllowance + (human.hunger > 68 ? 6 : 0)) return false;
       return true;
     }
 
@@ -2543,8 +3128,73 @@
       human.targetRefId = targetRefId;
     }
 
-    function killHuman(human) {
+    function inferHumanDeathReason(human) {
+      if (!human) return 'causa desconhecida';
+      if (human.ageMs >= (human.ageLimitOverride || Infinity)) {
+        return (human.children || 0) <= 0 ? 'velhice sem descendentes' : 'velhice';
+      }
+      if (human.thirst >= 98 && human.hunger >= 98) {
+        return 'fome e sede extremas';
+      }
+      if (human.lastRiskCause === 'predator' || ((human.recentDamageMs || 0) > 0 && human.health <= 0)) {
+        return 'ataque de animal hostil';
+      }
+      if (human.lastRiskCause === 'dehydration' || human.thirst >= 98) {
+        return 'desidratação';
+      }
+      if (human.lastRiskCause === 'starvation' || human.hunger >= 98) {
+        return 'fome';
+      }
+      if (human.lastRiskCause === 'exhaustion' || human.energy <= 0) {
+        return 'exaustão';
+      }
+      if (human.lastRiskCause === 'wounds' || human.health <= 0) {
+        return 'ferimentos';
+      }
+      return 'causa desconhecida';
+    }
+
+    function killHuman(human, reason = null) {
       human.alive = false;
+      if (human.deathLogged) return;
+      human.deathLogged = true;
+      const deathReason = reason || inferHumanDeathReason(human);
+      const recentActions = (human.actionLog || []).slice(-10);
+      const summaryRow = {
+        humano: human.name,
+        motivo: deathReason,
+        geracao: human.generation,
+        idade: formatElapsedMs(human.ageMs),
+        vida: Math.round(human.health),
+        fome: Math.round(human.hunger),
+        sede: Math.round(human.thirst),
+        energia: Math.round(human.energy),
+        filhos: human.children || 0,
+        base: human.homeBaseId ? `Base ${String(human.homeBaseId).padStart(2, '0')}` : 'nenhuma'
+      };
+      currentRunDeathRecords.push({
+        humanName: human.name,
+        reason: deathReason,
+        generation: human.generation,
+        ageMs: human.ageMs,
+        basesBuiltAtDeath: totalBasesBuiltThisRun,
+        recentActions,
+        summary: summaryRow
+      });
+      console.groupCollapsed(`☠️ ${human.name} morreu • ${deathReason}`);
+      console.table([summaryRow]);
+      if (recentActions.length) {
+        console.log('Últimas ações do humano:');
+        console.table(recentActions);
+      } else {
+        console.log('Nenhuma ação registrada antes da morte.');
+      }
+      const topActions = Object.entries(human.actionCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([acao, total]) => ({ acao: simplifyHumanAction(acao), total }));
+      if (topActions.length) {
+        console.log('Ações mais frequentes em vida:');
+        console.table(topActions);
+      }
+      console.groupEnd();
     }
 
     function createHumanChild(parentA, parentB) {
@@ -2564,10 +3214,14 @@
         child.homeBaseId = homeBase.id;
       }
       humans.push(child);
+      currentRunChildrenBorn += 1;
+      recordHumanAction(child, 'wander', 'nasceu na nova geração', true);
+      recordHumanAction(parentA, 'mate', `gerou ${child.name}`, true);
+      recordHumanAction(parentB, 'mate', `gerou ${child.name}`, true);
       parentA.children += 1;
       parentB.children += 1;
-      parentA.reproductionCooldownMs = randomBetween(simulationRng, 26000, 46000) * (1.08 - parentA.genes.fertility * 0.25);
-      parentB.reproductionCooldownMs = randomBetween(simulationRng, 26000, 46000) * (1.08 - parentB.genes.fertility * 0.25);
+      parentA.reproductionCooldownMs = randomBetween(simulationRng, 12000, 22000) * (1.05 - parentA.genes.fertility * 0.28);
+      parentB.reproductionCooldownMs = randomBetween(simulationRng, 12000, 22000) * (1.05 - parentB.genes.fertility * 0.28);
       refreshSocietyUnlocks();
     }
 
@@ -2576,17 +3230,18 @@
       if (human.targetKind === 'water') {
         const resource = findNearestResource(human, 24, new Set(['water']));
         if (resource) {
-          const gain = 8 + human.genes.efficiency * 6;
+          const gain = 10 + human.genes.efficiency * 7;
           human.inventory.water = clamp(human.inventory.water + gain, 0, 40);
           resource.amount = Math.max(0, resource.amount - gain * 0.32);
           human.thirst = Math.max(0, human.thirst - 56);
           human.energy = clamp(human.energy + 5, 0, 100);
           if (nearestBase && getBaseStock(nearestBase, 'water') < 8 && human.inventory.water > 7) storeAtBase(human, nearestBase);
+          recordHumanAction(human, 'drink', 'coletou água', true);
         }
       } else if (human.targetKind === 'forage') {
         const resource = findNearestResource(human, 24, new Set(['berry', 'mushroom', 'cactus', 'herb', 'medicinal']));
         if (resource) {
-          const gain = 5.5 + human.genes.efficiency * 5;
+          const gain = 6.8 + human.genes.efficiency * 5.6;
           if (resource.type === 'medicinal' || resource.type === 'herb') {
             human.inventory.medicine = clamp(human.inventory.medicine + gain * 0.45, 0, 20);
           } else {
@@ -2595,40 +3250,45 @@
           }
           resource.amount = Math.max(0, resource.amount - gain * 0.5);
           if (nearestBase && (getBaseStock(nearestBase, 'food') < 7 || getBaseStock(nearestBase, 'medicine') < 3)) storeAtBase(human, nearestBase);
+          recordHumanAction(human, 'forage', resource.type === 'medicinal' || resource.type === 'herb' ? 'coletou ervas/medicina' : 'coletou alimento', true);
         }
       } else if (human.targetKind === 'gatherWood') {
         const resource = findNearestResource(human, 24, new Set(['wood']));
         if (resource) {
-          const gain = 4.2 + human.genes.efficiency * 4.6;
+          const gain = 6.2 + human.genes.efficiency * 5.8;
           human.inventory.wood = clamp(human.inventory.wood + gain, 0, 30);
           resource.amount = Math.max(0, resource.amount - gain * 0.62);
           if (nearestBase && getBaseStock(nearestBase, 'wood') < 12) storeAtBase(human, nearestBase);
+          recordHumanAction(human, 'gatherWood', 'coletou madeira', true);
         }
       } else if (human.targetKind === 'gatherStone') {
         const resource = findNearestResource(human, 24, new Set(['stone']));
         if (resource) {
-          const gain = 3.6 + human.genes.efficiency * 4.1;
+          const gain = 5.6 + human.genes.efficiency * 5.2;
           human.inventory.stone = clamp(human.inventory.stone + gain, 0, 28);
           resource.amount = Math.max(0, resource.amount - gain * 0.72);
           if (nearestBase && getBaseStock(nearestBase, 'stone') < 10) storeAtBase(human, nearestBase);
+          recordHumanAction(human, 'gatherStone', 'coletou pedra', true);
         }
       } else if (human.targetKind === 'fish') {
         const resource = findNearestResource(human, 24, new Set(['fish']));
         if (resource) {
-          const gain = 4.8 + human.genes.efficiency * 4.2;
+          const gain = 6.6 + human.genes.efficiency * 5.6;
           human.inventory.food = clamp(human.inventory.food + gain * 1.2, 0, 40);
           human.hunger = Math.max(0, human.hunger - 32);
           resource.amount = Math.max(0, resource.amount - gain * 0.5);
           if (nearestBase && getBaseStock(nearestBase, 'food') < 7) storeAtBase(human, nearestBase);
+          recordHumanAction(human, 'fish', 'pescou alimento', true);
         }
       } else if (human.targetKind === 'scavenge') {
         const carcass = findNearestCarcass(human, 24);
         if (carcass) {
-          const gain = Math.min(carcass.amount, 7 + human.genes.efficiency * 6);
+          const gain = Math.min(carcass.amount, 9 + human.genes.efficiency * 7);
           carcass.amount = Math.max(0, carcass.amount - gain);
           human.inventory.meat = clamp(human.inventory.meat + gain, 0, 50);
           human.hunger = Math.max(0, human.hunger - 30);
           if (nearestBase && getBaseStock(nearestBase, 'meat') < 8) storeAtBase(human, nearestBase);
+          recordHumanAction(human, 'scavenge', 'coletou carne de carcaça', true);
         }
       } else if ((human.targetKind === 'aidWater' || human.targetKind === 'aidFood') && human.targetRefId) {
         const donorId = Number(String(human.targetRefId).split(':')[1]);
@@ -2689,11 +3349,14 @@
     function updateHumans(dtMs, now) {
       if (!humans.length) return;
       const dtSeconds = dtMs / 1000;
+      decayTribeKnowledge(dtMs);
+      autoShareKnowledgeForNearbyHumans();
       const desiredBaseCount = Math.max(1, Math.ceil(humans.length / HUMAN_BASE_CAPACITY));
       const collectiveWood = totalHumanInventoryResource('wood');
       const collectiveStone = totalHumanInventoryResource('stone');
       const collectiveFood = totalHumanInventoryResource('food') + totalHumanInventoryResource('meat');
       const collectiveWater = totalHumanInventoryResource('water');
+      const collectiveWeapons = humans.reduce((sum, h) => sum + ((h.alive && (h.inventory.weapon || 0) > 0) ? 1 : 0), 0);
 
       for (const human of humans) {
         if (!human.alive) continue;
@@ -2715,8 +3378,12 @@
         }
         human.lastHealth = human.health;
 
+        human.ageLimitOverride = stats.ageLimit;
         if (human.ageMs >= stats.ageLimit || human.health <= 0) {
-          killHuman(human);
+          const deathReason = human.ageMs >= stats.ageLimit
+            ? 'velhice'
+            : inferHumanDeathReason(human);
+          killHuman(human, deathReason);
           continue;
         }
 
@@ -2734,11 +3401,17 @@
           tryCraftHumanTools(human, null);
         }
         const nearbyHuman = findNearestHuman(human, TILE_SIZE * 2.6);
+        const tribeUnderArmed = collectiveWeapons < Math.max(3, Math.ceil(humans.length * 0.35));
+        const emergencyNeedWeapon = ((human.inventory.weapon || 0) < 1) && (((human.inventory.wood || 0) + getBaseStock(nearestBase, 'wood')) >= 3) && (((human.inventory.stone || 0) + getBaseStock(nearestBase, 'stone')) >= 2) && (human.hunger < 82 && human.thirst < 82) && (((human.targetKind === 'hunt') || (human.recentDamageMs || 0) > 0 || human.health < 84 || tribeUnderArmed));
+        if (emergencyNeedWeapon) {
+          tryCraftHumanTools(human, nearestBase || null);
+        }
         const nearbyPredator = findNearestAnimal(human, stats.fleeRadius + 36, (animal) => {
           const species = SPECIES_MAP[animal.speciesId];
           return !!species && isHostileToHumans(species.id);
         });
         const risk = getHumanRiskAssessment(human, stats, nearestBase, nearbyPredator);
+        const survivalPressure = risk.criticalWater || risk.criticalFood || risk.criticalHealth || risk.recentDamage;
         human.lastRiskCause = risk.primary;
         tryEmergencySelfCare(human, nearestBase, dtMs);
 
@@ -2765,29 +3438,44 @@
           }
         } else {
           const foodAmount = getHumanFoodAmount(human);
-          const criticalWater = risk.criticalWater || human.thirst > 58 || (human.inventory.water < 2.2 && human.thirst > 36);
-          const criticalFood = risk.criticalFood || human.hunger > 62 || (foodAmount < 3 && human.hunger > 38);
+          const waterUrgency = human.ancestralLessons?.waterUrgency || 0;
+          const foodUrgency = human.ancestralLessons?.foodUrgency || 0;
+          const baseUrgency = human.ancestralLessons?.baseUrgency || 0;
+          const weaponUrgency = human.ancestralLessons?.weaponUrgency || 0;
+          const shareUrgency = human.ancestralLessons?.shareUrgency || 0;
+          const reproductionUrgency = human.ancestralLessons?.reproductionUrgency || 0;
+          const agingWithoutChildren = human.ageMs > stats.ageLimit * 0.55 && (human.children || 0) === 0;
+          const noChildrenYet = currentRunChildrenBorn <= 0 && simulationTimeMs > 45000;
+          const lowPopulationPressure = humans.length <= 8 ? 10 : humans.length <= 12 ? 6 : humans.length <= 16 ? 3 : 0;
+          const lineagePressure = reproductionUrgency + lowPopulationPressure + (agingWithoutChildren ? 8 : 0) + (noChildrenYet ? 6 : 0);
+          const criticalWater = risk.criticalWater || human.thirst > (58 - waterUrgency) || (human.inventory.water < 2.2 && human.thirst > (36 - Math.round(waterUrgency * 0.5)));
+          const criticalFood = risk.criticalFood || human.hunger > (62 - foodUrgency) || (foodAmount < 3 && human.hunger > (38 - Math.round(foodUrgency * 0.5)));
           const lowEnergy = risk.lowEnergy || human.energy < 26;
-          const survivalPressure = criticalWater || criticalFood || risk.criticalHealth || risk.recentDamage;
+          const survivalPressureNow = criticalWater || criticalFood || risk.criticalHealth || risk.recentDamage;
           const baseWoodAvailable = (human.inventory.wood || 0) + getBaseStock(nearestBase, 'wood');
           const baseStoneAvailable = (human.inventory.stone || 0) + getBaseStock(nearestBase, 'stone');
-          const canReproduce = human.ageMs >= HUMAN_MATURE_AGE_MS && human.reproductionCooldownMs <= 0 && human.health > 62 && human.energy > 38 && human.hunger < 64 && human.thirst < 62 && humans.length < HUMAN_POPULATION_CAP && !!nearestBase;
+          const canReproduce = human.ageMs >= HUMAN_MATURE_AGE_MS && human.reproductionCooldownMs <= 0 && human.health > (lineagePressure >= 8 ? 42 : 48) && human.energy > (lineagePressure >= 8 ? 18 : 22) && human.hunger < (lineagePressure >= 8 ? 82 : 76) && human.thirst < (lineagePressure >= 8 ? 80 : 74) && humans.length < HUMAN_POPULATION_CAP && !!nearestBase;
           const carryingResources = human.inventory.food + human.inventory.water + human.inventory.meat + human.inventory.wood + human.inventory.stone + human.inventory.medicine > 12;
           const needsHeal = human.knownActions.includes('curar') && !!nearestBase && (human.health < 82 || risk.recentDamage);
           const needsMoreBases = bases.length < desiredBaseCount;
           const activeBuildSite = nearestBuildSite || (buildSites.length ? findNearestBuildSite(human, TILE_SIZE * 18) : null);
           const siteNeedsWood = activeBuildSite ? getBuildSiteMissing(activeBuildSite, 'wood') > 0.4 : false;
           const siteNeedsStone = activeBuildSite ? getBuildSiteMissing(activeBuildSite, 'stone') > 0.4 : false;
-          const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !buildSites.length && human.ageMs >= HUMAN_MATURE_AGE_MS && collectiveWood >= HUMAN_BASE_BUILD_COST.wood * 0.35 && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * 0.35;
-          const shouldContributeToBuild = !!activeBuildSite && ((human.inventory.wood || 0) > 0.4 || (human.inventory.stone || 0) > 0.4);
-          const needsWood = human.knownActions.includes('coletar madeira') && ((needsMoreBases && (!activeBuildSite || siteNeedsWood)) || (nearestBase && getBaseStock(nearestBase, 'wood') < 10));
-          const needsStone = human.knownActions.includes('coletar pedra') && ((needsMoreBases && (!activeBuildSite || siteNeedsStone)) || (nearestBase && getBaseStock(nearestBase, 'stone') < 8));
+          const buildReadiness = getBaseBuildReadiness(human, nearestBase);
+          const buildUrgencyFactor = baseUrgency > 0 ? Math.max(0.32, 0.6 - baseUrgency * 0.015 - lineagePressure * 0.01) : Math.max(0.34, 0.6 - lineagePressure * 0.01);
+          const tribeBuildSoon = !nearestBase && !buildSites.length && collectiveWood >= HUMAN_BASE_BUILD_COST.wood * buildUrgencyFactor && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * buildUrgencyFactor;
+          const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !buildSites.length && human.ageMs >= HUMAN_MATURE_AGE_MS * 0.55 && ((buildReadiness.members >= 2 && buildReadiness.canBuildSoon) || tribeBuildSoon);
+          const shouldContributeToBuild = !!activeBuildSite && ((human.inventory.wood || 0) > 0.4 || (human.inventory.stone || 0) > 0.4 || buildReadiness.siteReady);
+          const tribeNeedsBaseUrgently = !nearestBase && (buildReadiness.canBuildSoon || buildReadiness.siteReady || tribeBuildSoon || (lineagePressure >= 8 && buildReadiness.members >= 2)) && !criticalWater && !criticalFood;
+          const needsWood = human.knownActions.includes('coletar madeira') && ((needsMoreBases && (!nearestBase || !activeBuildSite || siteNeedsWood || collectiveWood + (activeBuildSite ? activeBuildSite.stored.wood : 0) < HUMAN_BASE_BUILD_COST.wood)) || (nearestBase && getBaseStock(nearestBase, 'wood') < 10) || (lineagePressure >= 8 && !nearestBase && collectiveWood < HUMAN_BASE_BUILD_COST.wood));
+          const needsStone = human.knownActions.includes('coletar pedra') && ((needsMoreBases && (!nearestBase || !activeBuildSite || siteNeedsStone || collectiveStone + (activeBuildSite ? activeBuildSite.stored.stone : 0) < HUMAN_BASE_BUILD_COST.stone)) || (nearestBase && getBaseStock(nearestBase, 'stone') < 8) || (lineagePressure >= 8 && !nearestBase && collectiveStone < HUMAN_BASE_BUILD_COST.stone));
           const baseNeedsFood = nearestBase && (getBaseStock(nearestBase, 'food') + getBaseStock(nearestBase, 'meat')) < Math.max(6, humans.length * 0.7);
           const baseNeedsWater = nearestBase && getBaseStock(nearestBase, 'water') < Math.max(6, humans.length * 0.75);
           const baseNeedsRepair = nearestBase && nearestBase.integrity < 78 && (human.inventory.wood > 1 || human.inventory.stone > 1);
-          const wantsKnowledgeExchange = human.knownActions.includes('trocar informações') && nearbyHuman && !survivalPressure && (human.aidCooldownMs || 0) <= 0 && humansCanExchangeKnowledge(human, nearbyHuman);
+          const wantsKnowledgeExchange = human.knownActions.includes('trocar informações') && nearbyHuman && (!survivalPressureNow || shareUrgency >= 4) && (human.aidCooldownMs || 0) <= 0 && humansCanExchangeKnowledge(human, nearbyHuman);
+          const shouldCraftForSurvival = ((human.inventory.weapon || 0) < 1) && (((human.inventory.wood || 0) + getBaseStock(nearestBase, 'wood')) >= 3) && (((human.inventory.stone || 0) + getBaseStock(nearestBase, 'stone')) >= 2) && !criticalWater && !criticalFood && (tribeUnderArmed || risk.recentDamage || human.health < 88 || weaponUrgency >= 4);
           const feelsCrowded = !!nearbyHuman && distanceSq(human.x, human.y, nearbyHuman.x, nearbyHuman.y) < (TILE_SIZE * 1.7) ** 2;
-          const hasCommittedTask = human.taskCommitMs > 0 && !survivalPressure && !feelsCrowded;
+          const hasCommittedTask = human.taskCommitMs > 0 && !survivalPressureNow && !feelsCrowded;
 
           if (risk.recentDamage || risk.criticalHealth) {
             human.taskCommitMs = 0;
@@ -2821,7 +3509,7 @@
               } else {
                 const prey = findNearestAnimal(human, stats.vision * 1.55, (animal) => humanCanHuntSpecies(human, animal.speciesId));
                 const nearbyAlly = findNearestHuman(human, TILE_SIZE * 6, (other) => other.health > 60 && other.energy > 35);
-                if (prey && (human.genes.courage > 0.45 || nearbyAlly)) {
+                if (prey && (human.genes.courage > 0.38 || nearbyAlly || (human.inventory.weapon || 0) > 0)) {
                   targetAnimal = prey;
                   assignHumanTarget(human, 'hunt', 'hunt', prey.x, prey.y, `animal:${prey.id}`, 4800);
                 } else {
@@ -2848,8 +3536,23 @@
                   pickHumanWanderTarget(human, 'food');
                 }
               }
+            } else if (shouldCraftForSurvival) {
+              assignHumanTarget(human, 'craftWeapon', 'craftWeapon', human.x, human.y, `craft:weapon:${human.id}`, 1800);
+            } else if (canReproduce && lineagePressure >= 8) {
+              const partner = findNearestHuman(human, stats.vision * 1.15, (other) => {
+                if (other.sex === human.sex || other.ageMs < HUMAN_MATURE_AGE_MS || other.reproductionCooldownMs > 0 || other.health <= 42 || other.energy <= 18) return false;
+                const otherBase = findNearestBase(other, TILE_SIZE * 5);
+                return !!otherBase && !!nearestBase && otherBase.id === nearestBase.id;
+              });
+              if (partner) {
+                assignHumanTarget(human, 'mate', 'mate', nearestBase.x, nearestBase.y, `base:${nearestBase.id}`, 3600);
+              } else {
+                assignHumanTarget(human, 'guard', 'guard', nearestBase.x, nearestBase.y, `base:${nearestBase.id}`, 2200);
+              }
             } else if (wantsKnowledgeExchange) {
               assignHumanTarget(human, 'knowledgeShare', 'knowledgeShare', nearbyHuman.x, nearbyHuman.y, `human:${nearbyHuman.id}`, 1800);
+            } else if (tribeNeedsBaseUrgently && activeBuildSite) {
+              assignHumanTarget(human, 'buildBase', 'buildBase', activeBuildSite.x, activeBuildSite.y, `site:${activeBuildSite.id}`, 5200);
             } else if (canStartBuildSite) {
               const buildSpot = chooseBaseBuildSpot(human);
               const site = createBuildSite(buildSpot.x, buildSpot.y, human);
@@ -2882,7 +3585,7 @@
               assignHumanTarget(human, 'repairBase', 'repairBase', nearestBase.x, nearestBase.y, `base:${nearestBase.id}`, 3600);
             } else if (canReproduce) {
               const partner = findNearestHuman(human, stats.vision * 1.1, (other) => {
-                if (other.sex === human.sex || other.ageMs < HUMAN_MATURE_AGE_MS || other.reproductionCooldownMs > 0 || other.health <= 60 || other.energy <= 34) return false;
+                if (other.sex === human.sex || other.ageMs < HUMAN_MATURE_AGE_MS || other.reproductionCooldownMs > 0 || other.health <= 50 || other.energy <= 24) return false;
                 const otherBase = findNearestBase(other, TILE_SIZE * 5);
                 return !!otherBase && !!nearestBase && otherBase.id === nearestBase.id;
               });
@@ -2892,7 +3595,7 @@
                 assignHumanTarget(human, 'guard', 'guard', nearestBase.x, nearestBase.y, `base:${nearestBase.id}`, 2200);
               }
             } else if (nearestBase && baseNeedsWater) {
-              const water = getHumanMemoryTarget(human, 'water') || (() => { const w = findNearestResource(human, stats.vision * 1.45, new Set(['water'])) || findNearestResourceGlobal(human, new Set(['water']), TILE_SIZE * 40); return w ? { kind: 'water', x: w.x, y: w.y, ref: `resource:${w.x}:${w.y}` } : null; })();
+              const water = getHumanMemoryTarget(human, 'water') || (() => { const w = findNearestResource(human, stats.vision * 1.45, new Set(['water'])) || findNearestResourceGlobal(human, new Set(['water']), TILE_SIZE * 40); return w ? { kind:'water', x:w.x, y:w.y, ref:`resource:${w.x}:${w.y}` } : null; })();
               if (water) {
                 assignHumanTarget(human, 'drink', 'water', water.x, water.y, water.ref || null, 4200);
               } else {
@@ -2952,7 +3655,7 @@
 
         if (human.mode === 'mate' && nearestBase) {
           const partner = findNearestHuman(human, HUMAN_REPRODUCTION_DISTANCE, (other) => {
-            if (other.sex === human.sex || other.reproductionCooldownMs > 0 || other.ageMs < HUMAN_MATURE_AGE_MS || other.health < 55 || other.energy < 30) return false;
+            if (other.sex === human.sex || other.reproductionCooldownMs > 0 || other.ageMs < HUMAN_MATURE_AGE_MS || other.health < 48 || other.energy < 22) return false;
             const otherBase = findNearestBase(other, TILE_SIZE * 5);
             return !!otherBase && otherBase.id === nearestBase.id;
           });
@@ -3017,6 +3720,7 @@
             }
           }
         }
+        syncHumanModeLog(human);
       }
 
       humans = humans.filter((human) => human.alive);
@@ -3414,10 +4118,16 @@
       }
     }
 
-    function regenerateWorld() {
+    function regenerateWorld(inheritedArchive = civilizationArchive) {
       terrainChunks.clear();
       overviewTerrainCanvas = null;
       overviewResourcesCanvas = null;
+      civilizationArchive = inheritedArchive || createEmptyCivilizationArchive();
+      currentCycleFinalized = false;
+      currentCycleSummary = null;
+      extinctionModalActive = false;
+      closeCycleModal();
+      simRunning = true;
       world = createWorld();
       buildOverviewLayers();
       initializeFauna();
@@ -3432,6 +4142,7 @@
     function simulationStep() {
       if (!world || !simRunning) return;
       const now = performance.now();
+      simulationTimeMs += SIM_TICK_MS;
       updateAnimals(SIM_TICK_MS, now);
       processRespawns(now);
       updateCarcasses(now);
@@ -3443,6 +4154,13 @@
         } else if (state.alive > 0) {
           state.extinct = false;
         }
+      }
+
+      if (humans.length === 0 && !extinctionModalActive) {
+        extinctionModalActive = true;
+        simRunning = false;
+        const summary = finalizeCurrentCycle();
+        openCycleModal(summary);
       }
 
       requestRender();
@@ -3494,11 +4212,27 @@
       if (event.code === 'Space') {
         event.preventDefault();
         simRunning = !simRunning;
+        if (extinctionModalActive && simRunning) {
+          simRunning = false;
+        }
         return;
       }
 
       if (event.key.toLowerCase() === 'r') {
-        regenerateWorld();
+        const summary = finalizeCurrentCycle();
+        console.groupCollapsed(`📜 Fim do ciclo ${summary.endedCycleNumber} • memória passada para a próxima civilização`);
+        console.log('Bases construídas neste ciclo:', summary.runSummary.basesBuilt);
+        console.log('Filhos gerados neste ciclo:', summary.runSummary.childrenBorn || 0);
+        console.log('Sabedoria média deste ciclo:', `${Math.round((summary.runSummary.averageWisdom || 0) * 100)}%`);
+        console.log('Eficiência média deste ciclo:', `${Math.round((summary.runSummary.averageEfficiency || 0) * 100)}%`);
+        console.log('Mortes registradas neste ciclo:', summary.runSummary.deathRecords.length);
+        console.log('Tempo vivido neste ciclo:', formatElapsedMs(summary.runSummary.elapsedMs));
+        const runDeaths = summarizeTopEntries(summary.runSummary.deathsByReason, 6);
+        const runActions = summarizeTopEntries(summary.runSummary.actionTotals, 8).map((item) => ({ acao: simplifyHumanAction(item.nome), total: item.total }));
+        if (runDeaths.length) console.table(runDeaths);
+        if (runActions.length) console.table(runActions);
+        console.groupEnd();
+        regenerateWorld(summary.inheritedArchive);
         return;
       }
 
@@ -3512,13 +4246,25 @@
       requestRender();
     });
 
+
+    if (cycleModalRestartButton) {
+      cycleModalRestartButton.addEventListener('click', () => {
+        restartNextCycleFromSummary();
+      });
+    }
+
+    if (cycleModalCloseButton) {
+      cycleModalCloseButton.addEventListener('click', () => {
+        closeCycleModal();
+      });
+    }
+
     window.addEventListener('resize', resizeCanvas);
 
     resizeCanvas();
-    regenerateWorld();
+    regenerateWorld(civilizationArchive);
     startSimulationLoop();
   </script>
 
 </body>
-
 </html>
