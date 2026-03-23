@@ -1099,7 +1099,7 @@
     function mlActionToHumanMode(actionIndex) {
       return ML_ACTIONS[actionIndex] || 'wander';
     }
-    // ── Fim do sistema ML
+    // Fim do sistema ML
 
     const worldSizeLabel = document.getElementById('worldSize');
     const resourceCountLabel = document.getElementById('resourceCount');
@@ -3226,14 +3226,14 @@
         lastRiskCause: null,
         lastX: tile.x + TILE_SIZE * 0.5,
         lastY: tile.y + TILE_SIZE * 0.5,
-        // ── ML neural network ──────────────────────────────────────
+        // ML neural network
         nn: mlCreateWeights(rng),     // pesos da rede neural (genes de ML)
         mlLastInputs: null,           // último vetor de inputs (para TD update)
         mlLastAction: -1,             // último índice de ação escolhido pela rede
         mlLastState: null,            // snapshot de estado para calcular recompensa
         mlTotalReward: 0,             // recompensa acumulada (fitness ML)
         mlUpdateCounter: 0            // contador de atualizações da rede
-        // ────────────────────────────────────────────────────────────
+        //
       };
       applyAncestralKnowledgeToHuman(human);
       return human;
@@ -4617,7 +4617,7 @@
         teamworkCount: human.teamworkCount || 0
       };
 
-      // Fase 3: seleciona o melhor candidato (já com ML re-ranking) ──
+      // Fase 3: seleciona o melhor candidato (já com ML re-ranking)
       candidates.sort((a, b) => b.score - a.score);
       const chosen = candidates[0] || { wanderPurpose: 'general', score: 0 };
 
@@ -4827,7 +4827,7 @@
                 addHumanScore(human, Math.floor(reward * 0.5), 'Aprendizado ML', `recompensa ${reward.toFixed(2)}`);
               }
             }
-            // ───────────────────────────────────────────────────────────────
+            //
           }
 
           if (human.targetKind === 'aidWater' || human.targetKind === 'aidFood' || human.targetKind === 'knowledgeShare') {
