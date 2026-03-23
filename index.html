@@ -4130,16 +4130,27 @@
         storeAtBase(human, nearestBase);
         human.homeBaseId = nearestBase.id;
       } else if (human.targetKind === 'buildBase') {
-        let site = findNearestBuildSite(human, TILE_SIZE * 4.5);
+        // Raio maior para encontrar obra existente — evita criar duplicatas
+        let site = findNearestBuildSite(human, TILE_SIZE * 10);
         if (!site) {
-          site = createBuildSite(human.x, human.y, human);
+          // Só cria obra nova se não existir nenhuma no mundo inteiro próxima ao humano
+          const anySiteNearby = findNearestBuildSite(human, TILE_SIZE * 28);
+          if (!anySiteNearby) {
+            site = createBuildSite(human.x, human.y, human);
+          } else {
+            // Vai até a obra mais próxima em vez de criar outra
+            site = anySiteNearby;
+            human.targetX = site.x;
+            human.targetY = site.y;
+          }
         }
-        if (contributeToBuildSite(human, site)) {
-          const builtBase = findNearestBase(site, TILE_SIZE * 2.5);
+        if (site && contributeToBuildSite(human, site)) {
+          const builtBase = findNearestBase(site, TILE_SIZE * 3);
           if (builtBase) {
             human.homeBaseId = builtBase.id;
             tryCraftHumanTools(human, builtBase);
           }
+          recordHumanAction(human, 'buildBase', `contribuiu para ${site.name}`, true);
         }
       } else if (human.targetKind === 'craftWeapon' || human.targetKind === 'craftTorch') {
         tryCraftHumanTools(human, nearestBase || null);
@@ -4210,8 +4221,15 @@
         return;
       }
       if (decision.startBuildSite) {
-        const site = createBuildSite(decision.x, decision.y, human);
-        assignHumanTarget(human, decision.mode || 'buildBase', decision.targetKind || 'buildBase', site.x, site.y, `site:${site.id}`, decision.commitMs || 4200);
+        // Antes de criar obra nova, verifica se já existe uma acessível no mundo
+        const existingSite = findNearestBuildSite(human, TILE_SIZE * 40);
+        if (existingSite) {
+          // Redireciona para obra existente em vez de criar outra
+          assignHumanTarget(human, 'buildBase', 'buildBase', existingSite.x, existingSite.y, `site:${existingSite.id}`, decision.commitMs || 4200);
+        } else {
+          const site = createBuildSite(decision.x, decision.y, human);
+          assignHumanTarget(human, decision.mode || 'buildBase', decision.targetKind || 'buildBase', site.x, site.y, `site:${site.id}`, decision.commitMs || 4200);
+        }
         return;
       }
       assignHumanTarget(
@@ -4745,16 +4763,19 @@
           const carryingResources = human.inventory.food + human.inventory.water + human.inventory.meat + human.inventory.wood + human.inventory.stone + human.inventory.medicine > 12;
           const needsHeal = human.knownActions.includes('curar') && !!nearestBase && (human.health < 82 || risk.recentDamage);
           const needsMoreBases = bases.length < desiredBaseCount;
-          const activeBuildSite = nearestBuildSite || (buildSites.length ? findNearestBuildSite(human, TILE_SIZE * 18) : null);
+          const activeBuildSite = nearestBuildSite || (buildSites.length ? findNearestBuildSite(human, TILE_SIZE * 38) : null);
           const siteNeedsWood = activeBuildSite ? getBuildSiteMissing(activeBuildSite, 'wood') > 0.4 : false;
           const siteNeedsStone = activeBuildSite ? getBuildSiteMissing(activeBuildSite, 'stone') > 0.4 : false;
           const buildReadiness = getBaseBuildReadiness(human, nearestBase);
           const buildUrgencyFactor = baseUrgency > 0 ? Math.max(0.12, 0.4 - baseUrgency * 0.015 - lineagePressure * 0.01 - ancestralBuildBias * 0.05) : Math.max(0.14, 0.4 - lineagePressure * 0.01 - ancestralBuildBias * 0.05);
           const tribeBuildSoon = collectiveWood >= HUMAN_BASE_BUILD_COST.wood * buildUrgencyFactor && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * buildUrgencyFactor;
-          // Corrigido: members >= 1 permite humano solo iniciar obra; raio de grupo aumentado
           const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !activeBuildSite && buildReadiness.members >= 1 && (buildReadiness.canBuildSoon || tribeBuildSoon || (bases.length === 0 && simulationTimeMs > 20000));
-          const shouldContributeToBuild = !!activeBuildSite && ((human.inventory.wood || 0) > 0.4 || (human.inventory.stone || 0) > 0.4 || buildReadiness.canBuildSoon || buildReadiness.siteReady);
-          // Corrigido: needsWood/Stone também ativam quando não há base alguma (deadlock removido)
+          // Contribui se tem recurso útil para a obra, ou se a obra está quase completa
+          const hasResourcesForSite = !!activeBuildSite && (
+            (siteNeedsWood && (human.inventory.wood || 0) > 0.4) ||
+            (siteNeedsStone && (human.inventory.stone || 0) > 0.4)
+          );
+          const shouldContributeToBuild = hasResourcesForSite || (!!activeBuildSite && buildReadiness.siteReady);
           const wantsToBuild = needsMoreBases && (activeBuildSite || canStartBuildSite || bases.length === 0);
           const needsWood = human.knownActions.includes('coletar madeira') && (siteNeedsWood || (wantsToBuild && collectiveWood < HUMAN_BASE_BUILD_COST.wood) || (nearestBase && getBaseStock(nearestBase, 'wood') < 10));
           const needsStone = human.knownActions.includes('coletar pedra') && (siteNeedsStone || (wantsToBuild && collectiveStone < HUMAN_BASE_BUILD_COST.stone) || (nearestBase && getBaseStock(nearestBase, 'stone') < 8));
