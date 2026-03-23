@@ -556,6 +556,187 @@
       border: 1px solid rgba(148, 163, 184, 0.16);
     }
 
+  
+
+    .mobile-controls {
+      position: absolute;
+      right: 12px;
+      bottom: 84px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 6;
+    }
+
+    .mobile-control-button {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(15, 23, 42, 0.9);
+      color: #f8fafc;
+      font-size: 22px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+      backdrop-filter: blur(6px);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .mobile-control-button.small-label {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .mobile-control-button:active {
+      transform: scale(0.97);
+    }
+
+    .panel-scroll {
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 768px) {
+      html, body {
+        position: fixed;
+        inset: 0;
+      }
+
+      canvas,
+      #world {
+        touch-action: none;
+      }
+
+      .hud,
+      .legend {
+        width: calc(100vw - 16px);
+        max-width: none;
+        left: 8px;
+        right: 8px;
+        padding: 10px 12px;
+        border-radius: 16px;
+      }
+
+      .hud {
+        top: 8px;
+        max-height: 34vh;
+        overflow-y: auto;
+      }
+
+      .legend {
+        top: auto;
+        bottom: 76px;
+        max-height: 24vh;
+        overflow-y: auto;
+      }
+
+      .hud,
+      .legend,
+      .fauna-scroll,
+      .cycle-modal-body {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+
+      .hud p,
+      .legend-item,
+      .resource-entry,
+      .species-name,
+      .species-sub,
+      .species-chip,
+      .cycle-note,
+      .cycle-list {
+        font-size: 12px;
+      }
+
+      .collapse-title {
+        font-size: 15px;
+      }
+
+      .resource-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .resource-entry {
+        min-height: 34px;
+        padding: 8px 9px;
+      }
+
+      .fauna-scroll {
+        max-height: 160px;
+      }
+
+      .species-entry {
+        padding: 8px;
+      }
+
+      .species-chip {
+        white-space: normal;
+        text-align: right;
+      }
+
+      .footer-tip {
+        left: 8px;
+        right: 68px;
+        bottom: 10px;
+        transform: none;
+        width: auto;
+        padding: 8px 10px;
+        font-size: 11px;
+        line-height: 1.35;
+        border-radius: 12px;
+      }
+
+      .mobile-controls {
+        display: flex;
+      }
+
+      .cycle-modal-overlay {
+        padding: 10px;
+      }
+
+      .cycle-modal {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 18px;
+      }
+
+      .cycle-modal-header {
+        padding: 16px 16px 12px;
+      }
+
+      .cycle-modal-title {
+        font-size: 20px;
+      }
+
+      .cycle-modal-subtitle {
+        font-size: 13px;
+      }
+
+      .cycle-modal-body {
+        padding: 14px 16px 16px;
+      }
+
+      .cycle-modal-grid,
+      .cycle-panels {
+        grid-template-columns: 1fr;
+      }
+
+      .cycle-modal-actions {
+        padding: 0 16px 16px;
+        flex-direction: column;
+      }
+
+      .cycle-button {
+        width: 100%;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -649,8 +830,15 @@
       </details>
     </div>
 
-    <div class="footer-tip">
+    <div class="footer-tip" id="footerTip">
       Arraste para mover a câmera • Use a roda do mouse para zoom • Pressione R para gerar um novo mundo • Espaço pausa a fauna
+    </div>
+
+    <div class="mobile-controls" aria-label="Controles móveis rápidos">
+      <button class="mobile-control-button" id="zoomInButton" type="button" aria-label="Aproximar">+</button>
+      <button class="mobile-control-button" id="zoomOutButton" type="button" aria-label="Afastar">−</button>
+      <button class="mobile-control-button small-label" id="pauseButton" type="button" aria-label="Pausar ou continuar">⏯</button>
+      <button class="mobile-control-button small-label" id="restartCycleButton" type="button" aria-label="Recomeçar ciclo">R</button>
     </div>
   </div>
 
@@ -707,10 +895,6 @@
     const HUMAN_REPRODUCTION_DISTANCE = 26;
     const HUMAN_BASE_BUILD_COST = { wood: 16, stone: 10 };
     const HUMAN_BASE_CAPACITY = 8;
-    const HUMAN_SCORE_FOR_CHILD = 5;
-    const HUMAN_SCORE_FOR_BASE = 8;
-    const HUMAN_SCORE_FOR_SUCCESS_HUNT = 1;
-    const HUMAN_SCORE_PENALTY_DEATH = 1;
     const HUMAN_BASE_BUILD_RADIUS = 24;
     const HUMAN_TRAIT_KEYS = ['speed', 'vision', 'courage', 'efficiency', 'fertility', 'wisdom'];
     const HUMAN_ALLOWED_BIOMES = ['plains', 'forest', 'swamp', 'mountain'];
@@ -745,6 +929,38 @@
     const cycleModalSubtitle = document.getElementById('cycleModalSubtitle');
     const cycleModalRestartButton = document.getElementById('cycleModalRestartButton');
     const cycleModalCloseButton = document.getElementById('cycleModalCloseButton');
+
+    const zoomInButton = document.getElementById('zoomInButton');
+    const zoomOutButton = document.getElementById('zoomOutButton');
+    const pauseButton = document.getElementById('pauseButton');
+    const restartCycleButton = document.getElementById('restartCycleButton');
+    const footerTip = document.getElementById('footerTip');
+
+    function isMobileViewport() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function updateMobileUIState() {
+      if (!footerTip) return;
+      footerTip.textContent = isMobileViewport()
+        ? 'Arraste com 1 dedo • Pinça para zoom • Botões +/− para câmera • R reinicia ciclo'
+        : 'Arraste para mover a câmera • Use a roda do mouse para zoom • Pressione R para gerar um novo mundo • Espaço pausa a fauna';
+
+      if (isMobileViewport()) {
+        document.querySelectorAll('.hud .collapse-panel, .legend .collapse-panel').forEach((panel, index) => {
+          if (index > 0) panel.removeAttribute('open');
+        });
+      }
+    }
+
+    function zoomCameraAt(screenX, screenY, zoomFactor) {
+      const pointBefore = screenToWorld(screenX, screenY);
+      camera.zoom = clamp(camera.zoom * zoomFactor, 0.08, 2.4);
+      const pointAfter = screenToWorld(screenX, screenY);
+      camera.x = clamp(camera.x + (pointBefore.x - pointAfter.x), 0, WORLD_WIDTH);
+      camera.y = clamp(camera.y + (pointBefore.y - pointAfter.y), 0, WORLD_HEIGHT);
+      requestRender();
+    }
 
     function focusCameraOnHuman(humanId) {
       const human = humans.find((item) => item.id === humanId && item.alive);
@@ -858,7 +1074,6 @@
     let currentRunChildrenBorn = 0;
     let currentRunHumansBorn = 0;
     let currentRunGeneSums = { wisdom: 0, efficiency: 0 };
-    let currentRunHighestScore = 0;
     let civilizationArchive = createEmptyCivilizationArchive();
 
     let extinctionModalActive = false;
@@ -877,6 +1092,19 @@
       startY: 0,
       cameraStartX: 0,
       cameraStartY: 0
+    };
+
+    let touchState = {
+      active: false,
+      mode: null,
+      startDistance: 0,
+      startZoom: 1,
+      startCenterX: 0,
+      startCenterY: 0,
+      cameraStartX: 0,
+      cameraStartY: 0,
+      lastX: 0,
+      lastY: 0
     };
 
     function resizeCanvas() {
@@ -1906,8 +2134,7 @@
           wood: 0,
           stone: 0
         },
-        founderId: founder ? founder.id : null,
-        contributorIds: founder ? [founder.id] : []
+        founderId: founder ? founder.id : null
       };
       buildSites.push(site);
       return site;
@@ -1931,21 +2158,12 @@
         contributed = contributed || moved > 0;
       }
 
-      if (contributed && !site.contributorIds.includes(human.id)) {
-        site.contributorIds.push(human.id);
-      }
-
       if (getBuildSiteMissing(site, 'wood') <= 0 && getBuildSiteMissing(site, 'stone') <= 0) {
-        const contributors = humans.filter((other) => other.alive && site.contributorIds.includes(other.id));
-        const base = createBase(site.x, site.y, contributors[0] || null);
+        const base = createBase(site.x, site.y, null);
         tribeKnowledge.base = { x: base.x, y: base.y, refId: base.id, ttlMs: 120000 };
         const nearbyHumans = humans.filter((other) => other.alive && distanceSq(other.x, other.y, site.x, site.y) <= (TILE_SIZE * 8) ** 2);
         for (const other of nearbyHumans) {
           other.homeBaseId = base.id;
-        }
-        for (const contributor of contributors) {
-          awardHumanScore(contributor, HUMAN_SCORE_FOR_BASE, 'base construída');
-          recordHumanAction(contributor, 'buildBase', `${base.name} concluída • +${HUMAN_SCORE_FOR_BASE} pts`, true);
         }
         buildSites = buildSites.filter((entry) => entry.id !== site.id);
       }
@@ -2225,14 +2443,6 @@
       incrementCounter(currentRunActionTotals, actionKey, 1);
     }
 
-    function awardHumanScore(human, delta, reason = '') {
-      if (!human || !Number.isFinite(delta) || delta === 0) return false;
-      human.score = Number(((human.score || 0) + delta).toFixed(2));
-      human.bestScore = Math.max(human.bestScore || 0, human.score);
-      currentRunHighestScore = Math.max(currentRunHighestScore, human.bestScore || 0);
-      return true;
-    }
-
     function syncHumanModeLog(human) {
       if (!human || !human.alive) return;
       if (human.lastLoggedMode !== human.mode) {
@@ -2254,7 +2464,6 @@
         elapsedMs: simulationTimeMs,
         basesBuilt: totalBasesBuiltThisRun,
         childrenBorn: currentRunChildrenBorn,
-        highestScore: currentRunHighestScore,
         averageWisdom,
         averageEfficiency,
         actionTotals: { ...currentRunActionTotals },
@@ -2429,10 +2638,6 @@
             <div class="cycle-stat-value">${Math.round((runSummary.averageEfficiency || 0) * 100)}%</div>
           </div>
           <div class="cycle-stat">
-            <div class="cycle-stat-label">Melhor pontuação individual</div>
-            <div class="cycle-stat-value">${Math.round(runSummary.highestScore || 0)}</div>
-          </div>
-          <div class="cycle-stat">
             <div class="cycle-stat-label">Tempo total acumulado</div>
             <div class="cycle-stat-value">${formatElapsedMs(archive.totalElapsedMs || 0)}</div>
           </div>
@@ -2524,8 +2729,6 @@
           torch: 0
         },
         colorOffset: Math.round((rng() - 0.5) * 20),
-        score: 0,
-        bestScore: 0,
         children: 0,
         homeBaseId: null,
         knownActions: [...ALL_HUMAN_ACTIONS],
@@ -2918,7 +3121,6 @@
       currentRunChildrenBorn = 0;
       currentRunHumansBorn = 0;
       currentRunGeneSums = { wisdom: 0, efficiency: 0 };
-      currentRunHighestScore = 0;
       simulationTimeMs = 0;
 
       const seedTile = findBestSpawnTileForHumans(simulationRng);
@@ -3217,10 +3419,6 @@
       if (human.deathLogged) return;
       human.deathLogged = true;
       const deathReason = reason || inferHumanDeathReason(human);
-      if (!human.deathScoreApplied && ['velhice', 'velhice sem descendentes', 'ataque de animal hostil'].includes(deathReason)) {
-        awardHumanScore(human, -HUMAN_SCORE_PENALTY_DEATH, `morte: ${deathReason}`);
-        human.deathScoreApplied = true;
-      }
       const recentActions = (human.actionLog || []).slice(-10);
       const summaryRow = {
         humano: human.name,
@@ -3231,11 +3429,9 @@
         fome: Math.round(human.hunger),
         sede: Math.round(human.thirst),
         energia: Math.round(human.energy),
-        pontuacao: Math.round(human.score || 0),
         filhos: human.children || 0,
         base: human.homeBaseId ? `Base ${String(human.homeBaseId).padStart(2, '0')}` : 'nenhuma'
       };
-      currentRunHighestScore = Math.max(currentRunHighestScore, human.bestScore || human.score || 0);
       currentRunDeathRecords.push({
         humanName: human.name,
         reason: deathReason,
@@ -3245,7 +3441,7 @@
         recentActions,
         summary: summaryRow
       });
-      console.groupCollapsed(`☠️ ${human.name} morreu • ${deathReason} • ${Math.round(human.score || 0)} pts`);
+      console.groupCollapsed(`☠️ ${human.name} morreu • ${deathReason}`);
       console.table([summaryRow]);
       if (recentActions.length) {
         console.log('Últimas ações do humano:');
@@ -3280,12 +3476,10 @@
       humans.push(child);
       currentRunChildrenBorn += 1;
       recordHumanAction(child, 'wander', 'nasceu na nova geração', true);
-      recordHumanAction(parentA, 'mate', `gerou ${child.name} • +${HUMAN_SCORE_FOR_CHILD} pts`, true);
-      recordHumanAction(parentB, 'mate', `gerou ${child.name} • +${HUMAN_SCORE_FOR_CHILD} pts`, true);
+      recordHumanAction(parentA, 'mate', `gerou ${child.name}`, true);
+      recordHumanAction(parentB, 'mate', `gerou ${child.name}`, true);
       parentA.children += 1;
       parentB.children += 1;
-      awardHumanScore(parentA, HUMAN_SCORE_FOR_CHILD, 'teve filho');
-      awardHumanScore(parentB, HUMAN_SCORE_FOR_CHILD, 'teve filho');
       parentA.reproductionCooldownMs = randomBetween(simulationRng, 12000, 22000) * (1.05 - parentA.genes.fertility * 0.28);
       parentB.reproductionCooldownMs = randomBetween(simulationRng, 12000, 22000) * (1.05 - parentB.genes.fertility * 0.28);
       refreshSocietyUnlocks();
@@ -3381,8 +3575,6 @@
             killAnimal(targetAnimal, performance.now());
             human.inventory.meat = clamp(human.inventory.meat + 9 + human.genes.efficiency * 6, 0, 50);
             human.hunger = Math.max(0, human.hunger - 40);
-            awardHumanScore(human, HUMAN_SCORE_FOR_SUCCESS_HUNT, 'caça bem-sucedida');
-            recordHumanAction(human, human.targetKind === 'defend' ? 'defend' : 'hunt', `abateu ${SPECIES_MAP[targetAnimal.speciesId]?.name || 'presa'} • +${HUMAN_SCORE_FOR_SUCCESS_HUNT} pt`, true);
             if (nearestBase && getBaseStock(nearestBase, 'meat') < 10) storeAtBase(human, nearestBase);
           }
         }
@@ -3517,7 +3709,6 @@
           const noChildrenYet = currentRunChildrenBorn <= 0 && simulationTimeMs > 45000;
           const lowPopulationPressure = humans.length <= 8 ? 10 : humans.length <= 12 ? 6 : humans.length <= 16 ? 3 : 0;
           const lineagePressure = reproductionUrgency + lowPopulationPressure + (agingWithoutChildren ? 8 : 0) + (noChildrenYet ? 6 : 0);
-          const scorePressure = Math.max(0, 12 - (human.score || 0)) + ((human.children || 0) <= 0 && human.ageMs > HUMAN_MATURE_AGE_MS ? 4 : 0) + (!nearestBase ? 2 : 0);
           const criticalWater = risk.criticalWater || human.thirst > (58 - waterUrgency - Math.round(longevityUrgency * 0.35)) || (human.inventory.water < 2.2 && human.thirst > (36 - Math.round(waterUrgency * 0.5) - Math.round(longevityUrgency * 0.25)));
           const criticalFood = risk.criticalFood || human.hunger > (62 - foodUrgency - Math.round(longevityUrgency * 0.35)) || (foodAmount < 3 && human.hunger > (38 - Math.round(foodUrgency * 0.5) - Math.round(longevityUrgency * 0.2)));
           const lowEnergy = risk.lowEnergy || human.energy < Math.max(18, 26 + longevityUrgency * 0.6);
@@ -3534,12 +3725,9 @@
           const buildReadiness = getBaseBuildReadiness(human, nearestBase);
           const buildUrgencyFactor = baseUrgency > 0 ? Math.max(0.32, 0.6 - baseUrgency * 0.015 - lineagePressure * 0.01) : Math.max(0.34, 0.6 - lineagePressure * 0.01);
           const tribeBuildSoon = !nearestBase && !buildSites.length && collectiveWood >= HUMAN_BASE_BUILD_COST.wood * buildUrgencyFactor && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * buildUrgencyFactor;
-          const wantsScoreDrivenBuild = !nearestBase && buildReadiness.members >= 2 && (buildReadiness.canBuildSoon || buildReadiness.siteReady || tribeBuildSoon) && !criticalWater && !criticalFood && scorePressure >= 4;
-          const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !buildSites.length && human.ageMs >= HUMAN_MATURE_AGE_MS * 0.55 && ((buildReadiness.members >= 2 && buildReadiness.canBuildSoon) || tribeBuildSoon || wantsScoreDrivenBuild);
+          const canStartBuildSite = human.knownActions.includes('construir base') && needsMoreBases && !buildSites.length && human.ageMs >= HUMAN_MATURE_AGE_MS * 0.55 && ((buildReadiness.members >= 2 && buildReadiness.canBuildSoon) || tribeBuildSoon);
           const shouldContributeToBuild = !!activeBuildSite && ((human.inventory.wood || 0) > 0.4 || (human.inventory.stone || 0) > 0.4 || buildReadiness.siteReady);
-          const tribeNeedsBaseUrgently = !nearestBase && (buildReadiness.canBuildSoon || buildReadiness.siteReady || tribeBuildSoon || (lineagePressure >= 8 && buildReadiness.members >= 2) || wantsScoreDrivenBuild) && !criticalWater && !criticalFood;
-          const wantsScoreDrivenMate = canReproduce && scorePressure >= 5 && (((human.children || 0) <= 0) || lineagePressure >= 6);
-          const wantsScoreDrivenHunt = !criticalWater && !criticalFood && !risk.criticalHealth && scorePressure >= 3 && (human.inventory.weapon || 0) > 0 && human.health > 62 && human.energy > 34 && human.hunger < 78;
+          const tribeNeedsBaseUrgently = !nearestBase && (buildReadiness.canBuildSoon || buildReadiness.siteReady || tribeBuildSoon || (lineagePressure >= 8 && buildReadiness.members >= 2)) && !criticalWater && !criticalFood;
           const needsWood = human.knownActions.includes('coletar madeira') && ((needsMoreBases && (!nearestBase || !activeBuildSite || siteNeedsWood || collectiveWood + (activeBuildSite ? activeBuildSite.stored.wood : 0) < HUMAN_BASE_BUILD_COST.wood)) || (nearestBase && getBaseStock(nearestBase, 'wood') < 10) || (lineagePressure >= 8 && !nearestBase && collectiveWood < HUMAN_BASE_BUILD_COST.wood));
           const needsStone = human.knownActions.includes('coletar pedra') && ((needsMoreBases && (!nearestBase || !activeBuildSite || siteNeedsStone || collectiveStone + (activeBuildSite ? activeBuildSite.stored.stone : 0) < HUMAN_BASE_BUILD_COST.stone)) || (nearestBase && getBaseStock(nearestBase, 'stone') < 8) || (lineagePressure >= 8 && !nearestBase && collectiveStone < HUMAN_BASE_BUILD_COST.stone));
           const baseNeedsFood = nearestBase && (getBaseStock(nearestBase, 'food') + getBaseStock(nearestBase, 'meat')) < Math.max(6, humans.length * 0.7);
@@ -3611,7 +3799,7 @@
               }
             } else if (shouldCraftForSurvival) {
               assignHumanTarget(human, 'craftWeapon', 'craftWeapon', human.x, human.y, `craft:weapon:${human.id}`, 1800);
-            } else if ((canReproduce && lineagePressure >= 8) || wantsScoreDrivenMate) {
+            } else if (canReproduce && lineagePressure >= 8) {
               const partner = findNearestHuman(human, stats.vision * 1.15, (other) => {
                 if (other.sex === human.sex || other.ageMs < HUMAN_MATURE_AGE_MS || other.reproductionCooldownMs > 0 || other.health <= 42 || other.energy <= 18) return false;
                 const otherBase = findNearestBase(other, TILE_SIZE * 5);
@@ -3666,14 +3854,6 @@
                 assignHumanTarget(human, 'mate', 'mate', nearestBase.x, nearestBase.y, `base:${nearestBase.id}`, 3200);
               } else {
                 assignHumanTarget(human, 'guard', 'guard', nearestBase.x, nearestBase.y, `base:${nearestBase.id}`, 2200);
-              }
-            } else if (wantsScoreDrivenHunt) {
-              const prey = findNearestAnimal(human, stats.vision * 1.55, (animal) => humanCanHuntSpecies(human, animal.speciesId));
-              if (prey) {
-                targetAnimal = prey;
-                assignHumanTarget(human, 'hunt', 'hunt', prey.x, prey.y, `animal:${prey.id}`, 3600);
-              } else {
-                pickHumanWanderTarget(human, 'food');
               }
             } else if (nearestBase && baseNeedsWater) {
               const water = getHumanMemoryTarget(human, 'water') || (() => { const w = findNearestResource(human, stats.vision * 1.45, new Set(['water'])) || findNearestResourceGlobal(human, new Set(['water']), TILE_SIZE * 40); return w ? { kind:'water', x:w.x, y:w.y, ref:`resource:${w.x}:${w.y}` } : null; })();
@@ -3810,7 +3990,7 @@
 
     function buildHumanLegend() {
       if (!humanLegend) return;
-      const sortedHumans = [...humans].sort((a, b) => (b.score || 0) - (a.score || 0) || b.generation - a.generation || b.health - a.health || a.id - b.id);
+      const sortedHumans = [...humans].sort((a, b) => b.generation - a.generation || b.health - a.health || a.id - b.id);
       humanLegend.innerHTML = sortedHumans.map((human) => {
         const avgAdapt = Math.round(((human.genes.wisdom + human.genes.efficiency + human.genes.courage) / 3) * 100);
         const foodStore = Math.round(human.inventory.food + human.inventory.meat);
@@ -3821,14 +4001,13 @@
             <div class="species-main">
               <span class="swatch" style="background:${shiftHexColor('#f4c38b', human.colorOffset)}"></span>
               <div class="species-info">
-                <div class="species-name">${human.name} • G${human.generation} • ${human.sex} • ${Math.round(human.score || 0)} pts</div>
+                <div class="species-name">${human.name} • G${human.generation} • ${human.sex}</div>
                 <div class="species-sub">${humanReadableMode(human.mode)} • Vida ${Math.round(human.health)} • Fome ${Math.round(human.hunger)} • Sede ${Math.round(human.thirst)}</div>
                 <div class="species-sub">Base ${homeBase ? homeBase.name : 'nenhuma'} • Ações ${knownActions} • Madeira ${Math.round(human.inventory.wood)} • Pedra ${Math.round(human.inventory.stone)} • Arma ${(human.inventory.weapon || 0) > 0 ? 'Sim' : 'Não'} • Tocha ${(human.inventory.torch || 0) > 0 ? 'Sim' : 'Não'}</div>
               </div>
             </div>
             <div class="species-meta">
               <span class="species-chip">Adapt. ${avgAdapt}</span>
-              <span class="species-chip">Pontuação ${Math.round(human.score || 0)} • Melhor ${Math.round(human.bestScore || human.score || 0)}</span>
               <span class="species-chip">Comida ${foodStore} • Água ${Math.round(human.inventory.water)}</span>
             </div>
           </div>
@@ -4253,6 +4432,24 @@
       simulationLoopId = setInterval(simulationStep, SIM_TICK_MS);
     }
 
+    zoomInButton?.addEventListener('click', () => {
+      zoomCameraAt(window.innerWidth * 0.5, window.innerHeight * 0.5, 1.18);
+    });
+
+    zoomOutButton?.addEventListener('click', () => {
+      zoomCameraAt(window.innerWidth * 0.5, window.innerHeight * 0.5, 0.84);
+    });
+
+    pauseButton?.addEventListener('click', () => {
+      simRunning = !simRunning;
+      if (extinctionModalActive && simRunning) simRunning = false;
+    });
+
+    restartCycleButton?.addEventListener('click', () => {
+      const summary = finalizeCurrentCycle();
+      regenerateWorld(summary.inheritedArchive);
+    });
+
     canvas.addEventListener('mousedown', (event) => {
       drag.active = true;
       drag.startX = event.clientX;
@@ -4274,6 +4471,80 @@
       camera.x = clamp(drag.cameraStartX - dx, 0, WORLD_WIDTH);
       camera.y = clamp(drag.cameraStartY - dy, 0, WORLD_HEIGHT);
       requestRender();
+    });
+
+    function getTouchDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    function getTouchCenter(touches) {
+      return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2
+      };
+    }
+
+    canvas.addEventListener('touchstart', (event) => {
+      if (event.touches.length === 1) {
+        const touch = event.touches[0];
+        touchState.active = true;
+        touchState.mode = 'pan';
+        touchState.lastX = touch.clientX;
+        touchState.lastY = touch.clientY;
+        touchState.cameraStartX = camera.x;
+        touchState.cameraStartY = camera.y;
+      } else if (event.touches.length >= 2) {
+        const center = getTouchCenter(event.touches);
+        touchState.active = true;
+        touchState.mode = 'pinch';
+        touchState.startDistance = getTouchDistance(event.touches);
+        touchState.startZoom = camera.zoom;
+        touchState.startCenterX = center.x;
+        touchState.startCenterY = center.y;
+        touchState.cameraStartX = camera.x;
+        touchState.cameraStartY = camera.y;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (event) => {
+      if (!touchState.active) return;
+      if (touchState.mode === 'pan' && event.touches.length === 1) {
+        event.preventDefault();
+        const touch = event.touches[0];
+        const dx = (touch.clientX - touchState.lastX) / camera.zoom;
+        const dy = (touch.clientY - touchState.lastY) / camera.zoom;
+        camera.x = clamp(camera.x - dx, 0, WORLD_WIDTH);
+        camera.y = clamp(camera.y - dy, 0, WORLD_HEIGHT);
+        touchState.lastX = touch.clientX;
+        touchState.lastY = touch.clientY;
+        requestRender();
+      } else if (event.touches.length >= 2) {
+        event.preventDefault();
+        const center = getTouchCenter(event.touches);
+        const distance = Math.max(12, getTouchDistance(event.touches));
+        const scale = distance / Math.max(12, touchState.startDistance || distance);
+        const before = screenToWorld(center.x, center.y);
+        camera.zoom = clamp(touchState.startZoom * scale, 0.08, 2.4);
+        const after = screenToWorld(center.x, center.y);
+        camera.x = clamp(camera.x + (before.x - after.x), 0, WORLD_WIDTH);
+        camera.y = clamp(camera.y + (before.y - after.y), 0, WORLD_HEIGHT);
+        requestRender();
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (event) => {
+      if (event.touches.length === 0) {
+        touchState.active = false;
+        touchState.mode = null;
+      } else if (event.touches.length === 1) {
+        const touch = event.touches[0];
+        touchState.active = true;
+        touchState.mode = 'pan';
+        touchState.lastX = touch.clientX;
+        touchState.lastY = touch.clientY;
+      }
     });
 
     canvas.addEventListener('wheel', (event) => {
@@ -4343,9 +4614,10 @@
       });
     }
 
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => { resizeCanvas(); updateMobileUIState(); requestRender(); });
 
     resizeCanvas();
+    updateMobileUIState();
     regenerateWorld(civilizationArchive);
     startSimulationLoop();
   </script>
