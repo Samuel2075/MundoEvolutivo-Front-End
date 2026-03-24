@@ -956,8 +956,8 @@
     // ── Machine Learning: Rede Neural Leve para Tomada de Decisão ────────────
     // Arquitetura: 14 entradas → 12 ocultos (tanh) → 14 ações (softmax)
     // Treinamento: TD-Learning (temporal difference) com recompensa por sobrevivência
-    const ML_INPUT_SIZE = 14;
-    const ML_HIDDEN_SIZE = 12;
+    const ML_INPUT_SIZE = 16;
+    const ML_HIDDEN_SIZE = 14;
     const ML_OUTPUT_SIZE = 14; // uma saída por ação possível
     const ML_ACTIONS = ['drink', 'forage', 'gatherWood', 'gatherStone', 'fish', 'scavenge', 'hunt',
       'buildBase', 'store', 'rest', 'heal', 'mate', 'knowledgeShare', 'aidAlly'];
@@ -1067,21 +1067,27 @@
     // Normaliza estado do humano em vetor de inputs [0..1]
     function mlGetStateInputs(human, stats, risk, ctx) {
       const foodAmount = getHumanFoodAmount(human);
+      const site = ctx.activeBuildSite || (buildSites.length ? buildSites[0] : null);
+      const siteProgress = site
+        ? ((site.stored.wood || 0) + (site.stored.stone || 0)) / (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone)
+        : 0;
       return [
-        human.health / 100,                                    // 0: saúde
-        Math.max(0, 100 - human.hunger) / 100,                 // 1: saciedade (inverso da fome)
-        Math.max(0, 100 - human.thirst) / 100,                 // 2: hidratação
-        human.energy / 100,                                    // 3: energia
-        clamp(foodAmount / 20, 0, 1),                           // 4: comida no inventário
-        clamp((human.inventory.water || 0) / 20, 0, 1),         // 5: água no inventário
-        clamp(((human.inventory.wood || 0) + (human.inventory.stone || 0)) / 20, 0, 1), // 6: materiais
-        (human.inventory.weapon || 0) > 0 ? 1 : 0,             // 7: tem arma
-        ctx.nearestBase ? 1 : 0,                                // 8: há base próxima
-        clamp(human.ageMs / HUMAN_MAX_AGE_MS, 0, 1),           // 9: maturidade
-        human.genes.wisdom,                                     // 10: sabedoria genética
-        human.genes.courage,                                    // 11: coragem genética
-        risk.primary === 'predator' ? 1 : 0,                    // 12: predador próximo
-        clamp((humans.length) / 20, 0, 1)                       // 13: pressão populacional
+        human.health / 100,                                              // 0: saúde
+        Math.max(0, 100 - human.hunger) / 100,                           // 1: saciedade
+        Math.max(0, 100 - human.thirst) / 100,                           // 2: hidratação
+        human.energy / 100,                                              // 3: energia
+        clamp(foodAmount / 20, 0, 1),                                    // 4: comida
+        clamp((human.inventory.water || 0) / 20, 0, 1),                  // 5: água
+        clamp((human.inventory.wood || 0) / HUMAN_BASE_BUILD_COST.wood, 0, 1),  // 6: madeira (normalizada pelo custo)
+        clamp((human.inventory.stone || 0) / HUMAN_BASE_BUILD_COST.stone, 0, 1),// 7: pedra (normalizada pelo custo)
+        (human.inventory.weapon || 0) > 0 ? 1 : 0,                      // 8: tem arma
+        ctx.nearestBase ? 1 : 0,                                         // 9: há base próxima
+        clamp(human.ageMs / HUMAN_MAX_AGE_MS, 0, 1),                    // 10: maturidade
+        human.genes.wisdom,                                              // 11: sabedoria genética
+        human.genes.courage,                                             // 12: coragem genética
+        risk.primary === 'predator' ? 1 : 0,                             // 13: predador próximo
+        clamp((humans.length) / 20, 0, 1),                               // 14: pressão populacional
+        clamp(siteProgress, 0, 1)                                        // 15: progresso da obra (0=sem obra, 1=completa)
       ];
     }
 
@@ -1089,27 +1095,29 @@
     function mlComputeReward(human, prevState, dtMs) {
       if (!prevState) return 0;
       let reward = 0;
-      // Sobrevivência = recompensa base por cada tick vivo
       reward += 0.04;
-      // Variações de saúde/fome/sede
       const healthDelta = (human.health - prevState.health) / 100;
-      const hungerDelta = (prevState.hunger - human.hunger) / 100; // positivo se reduziu fome
-      const thirstDelta = (prevState.thirst - human.thirst) / 100; // positivo se reduziu sede
+      const hungerDelta = (prevState.hunger - human.hunger) / 100;
+      const thirstDelta = (prevState.thirst - human.thirst) / 100;
       reward += healthDelta * 1.4;
       reward += hungerDelta * 1.2;
       reward += thirstDelta * 1.2;
-      // Penalidade por situação crítica
       if (human.health < 30) reward -= 0.8;
       if (human.hunger > 80) reward -= 0.6;
       if (human.thirst > 80) reward -= 0.6;
       if (human.energy < 15) reward -= 0.3;
-      // Bônus por conquistas
-      if ((human.children || 0) > (prevState.children || 0)) reward += 2.5;
-      if ((human.basesBuilt || 0) > (prevState.basesBuilt || 0)) reward += 2.0;
+      if ((human.children || 0) > (prevState.children || 0))               reward += 2.5;
+      if ((human.basesBuilt || 0) > (prevState.basesBuilt || 0))           reward += 3.0;
       if ((human.successfulHunts || 0) > (prevState.successfulHunts || 0)) reward += 1.5;
       if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.8;
-      if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0)) reward += 0.5;
-      // Penalidade por receber dano
+      if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0))     reward += 0.5;
+      // Recompensa por cada avanço no progresso da obra
+      const site = buildSites.length ? buildSites[0] : null;
+      if (site) {
+        const currProgress = ((site.stored.wood || 0) + (site.stored.stone || 0)) / (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone);
+        const prevProgress = prevState.siteProgress || 0;
+        if (currProgress > prevProgress) reward += (currProgress - prevProgress) * 4.0;
+      }
       if ((human.recentDamageMs || 0) > 0 && prevState.health > human.health) reward -= 0.4;
       return clamp(reward, -3.0, 3.0);
     }
@@ -2510,20 +2518,41 @@
 
     function chooseBaseBuildSpot(human) {
       const anchorTile = getSocietyCenterTile();
-      for (let attempt = 0; attempt < 18; attempt++) {
+      let bestSpot = null;
+      let bestScore = -Infinity;
+
+      for (let attempt = 0; attempt < 28; attempt++) {
         const angle = randomBetween(simulationRng, 0, Math.PI * 2);
-        const distance = randomBetween(simulationRng, TILE_SIZE * 2.8, TILE_SIZE * 6.5);
+        const distance = randomBetween(simulationRng, TILE_SIZE * 2.8, TILE_SIZE * 9);
         const tx = clamp(anchorTile.x + TILE_SIZE * 0.5 + Math.cos(angle) * distance, 0, WORLD_WIDTH);
         const ty = clamp(anchorTile.y + TILE_SIZE * 0.5 + Math.sin(angle) * distance, 0, WORLD_HEIGHT);
         const tile = worldToTile(tx, ty);
         if (!isHumanCompatibleTile(tile)) continue;
         const tooCloseBase = findNearestBase({ x: tx, y: ty }, TILE_SIZE * 5.5);
         const tooCloseSite = findNearestBuildSite({ x: tx, y: ty }, TILE_SIZE * 4.5);
-        if (!tooCloseBase && !tooCloseSite) {
-          return { x: tx, y: ty };
+        if (tooCloseBase || tooCloseSite) continue;
+
+        // Pontua o local pelo quanto tem madeira e pedra por perto
+        const nearWood  = findNearestResource({ x: tx, y: ty }, TILE_SIZE * 14, new Set(['wood']));
+        const nearStone = findNearestResource({ x: tx, y: ty }, TILE_SIZE * 14, new Set(['stone']));
+        const nearWater = findNearestResource({ x: tx, y: ty }, TILE_SIZE * 16, new Set(['water']));
+        const nearFood  = findNearestResource({ x: tx, y: ty }, TILE_SIZE * 12, new Set(['berry', 'mushroom', 'fish']));
+        let score = 0;
+        if (nearWood)  score += 50000 / (distanceSq(tx, ty, nearWood.x,  nearWood.y)  + 1000);
+        if (nearStone) score += 45000 / (distanceSq(tx, ty, nearStone.x, nearStone.y) + 1000);
+        if (nearWater) score += 30000 / (distanceSq(tx, ty, nearWater.x, nearWater.y) + 1000);
+        if (nearFood)  score += 20000 / (distanceSq(tx, ty, nearFood.x,  nearFood.y)  + 1000);
+        // Penaliza se não tiver madeira E pedra próximas — obra não vai ser concluída
+        if (!nearWood)  score -= 80;
+        if (!nearStone) score -= 60;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestSpot = { x: tx, y: ty };
         }
       }
-      return { x: human.x, y: human.y };
+
+      return bestSpot || { x: human.x, y: human.y };
     }
 
     function storeAtBase(human, base) {
@@ -4680,7 +4709,8 @@
 
       // Guarda contexto para TD update no próximo tick
       human.mlLastInputs = inputs;
-      human.mlLastAction = -1; // será definido abaixo
+      human.mlLastAction = -1;
+      const _site = buildSites.length ? buildSites[0] : null;
       human.mlLastState = {
         health: human.health,
         hunger: human.hunger,
@@ -4690,7 +4720,10 @@
         basesBuilt: human.basesBuilt || 0,
         successfulHunts: human.successfulHunts || 0,
         knowledgeShares: human.knowledgeShares || 0,
-        teamworkCount: human.teamworkCount || 0
+        teamworkCount: human.teamworkCount || 0,
+        siteProgress: _site
+          ? (((_site.stored.wood || 0) + (_site.stored.stone || 0)) / (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone))
+          : 0
       };
 
       // ── Fase 3: seleciona o melhor candidato (já com ML re-ranking) ──
@@ -4750,8 +4783,9 @@
         const nearestBuildSite = findNearestBuildSite(human, stats.vision * 1.2);
         if (nearestBase && !human.homeBaseId) human.homeBaseId = nearestBase.id;
         if (nearestBase) {
+          // Recebe suprimentos silenciosamente — ML decide o que fazer depois
           if ((human.hunger > 52 || human.thirst > 50) && supplyHumanFromBase(human, nearestBase)) {
-            human.mode = 'aidAlly';
+            human.decisionCooldownMs = 0; // força ML a re-avaliar com novo estado
           }
           if (((human.inventory.weapon || 0) < 1 && (human.inventory.wood + human.inventory.stone + getBaseStock(nearestBase, 'wood') + getBaseStock(nearestBase, 'stone')) >= 5) || ((human.inventory.torch || 0) < 1 && (human.inventory.wood + getBaseStock(nearestBase, 'wood')) >= 2)) {
             tryCraftHumanTools(human, nearestBase);
@@ -4968,12 +5002,18 @@
           });
           if (partner) {
             createHumanChild(human, partner);
-            human.mode = 'wander';
+            // Não força wander — ML decide a próxima ação
+            human.decisionCooldownMs = 0;
             human.taskCommitMs = 0;
           }
         }
 
-        const speedMultiplier = human.mode === 'flee' ? 1.24 : human.mode === 'hunt' ? 1.12 : human.mode === 'defend' ? 1.08 : human.mode === 'guard' ? 0.62 : human.mode === 'rest' || human.mode === 'heal' ? 0 : 1.08;
+        // mode é a fonte de verdade para velocidade, mas targetKind reflete a última decisão ML.
+        // Se mode ficou em rest/heal mas targetKind já mudou, o humano precisa se mover.
+        const effectiveMode = (human.mode === 'rest' || human.mode === 'heal') && human.targetKind !== 'rest'
+          ? human.targetKind  // usa targetKind para não travar o movimento
+          : human.mode;
+        const speedMultiplier = effectiveMode === 'flee' ? 1.24 : effectiveMode === 'hunt' ? 1.12 : effectiveMode === 'defend' ? 1.08 : effectiveMode === 'guard' ? 0.62 : effectiveMode === 'rest' || effectiveMode === 'heal' ? 0 : 1.08;
         const speed = stats.speed * speedMultiplier;
         if (moveVector && speedMultiplier > 0) {
           human.vx = moveVector.x * speed;
@@ -4994,15 +5034,15 @@
         } else {
           human.vx = 0;
           human.vy = 0;
-          human.energy = clamp(human.energy + dtMs * (human.mode === 'rest' ? 0.01 : 0.0045), 0, 100);
-          if (human.mode === 'rest' || human.mode === 'heal') {
+          human.energy = clamp(human.energy + dtMs * (effectiveMode === 'rest' ? 0.01 : 0.0045), 0, 100);
+          if (effectiveMode === 'rest' || effectiveMode === 'heal') {
             const base = findNearestBase(human, TILE_SIZE * 4);
             if (base) restAtBase(human, base, dtMs);
           }
         }
 
         const movedDistSq = distanceSq(human.x, human.y, human.lastX || human.x, human.lastY || human.y);
-        if (speedMultiplier > 0 && movedDistSq < 1.2 && human.mode !== 'rest' && human.mode !== 'heal') {
+        if (speedMultiplier > 0 && movedDistSq < 1.2 && effectiveMode !== 'rest' && effectiveMode !== 'heal') {
           human.stuckMs = (human.stuckMs || 0) + dtMs;
           if (human.stuckMs > 360) {
             addHumanActionPenalty(human, human.targetKind || human.mode || 'wander', 9, 8000);
@@ -5019,15 +5059,10 @@
 
         if (distanceSq(human.x, human.y, human.targetX, human.targetY) <= 24 * 24) {
           humanTryInteract(human, targetAnimal, dtMs);
+          // Zera cooldowns para forçar a ML a re-decidir imediatamente
+          // com base no novo estado (após executar a ação)
           human.decisionCooldownMs = 0;
-          human.taskCommitMs = Math.max(0, (human.taskCommitMs || 0) - 1200);
-          if (human.mode !== 'flee') {
-            if (human.health < 62 || human.lastRiskCause === 'wounds') {
-              human.mode = 'heal';
-            } else {
-              human.mode = human.energy < 28 ? 'rest' : 'wander';
-            }
-          }
+          human.taskCommitMs = 0;
         }
         syncHumanModeLog(human);
       }
