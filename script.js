@@ -2354,6 +2354,8 @@ async function sendCycleKnowledgeToBackend(summary) {
 }
 
 async function restartNextCycleFromSummary() {
+
+    console.log('restartNextCycleFromSummary foi chamada');
     const summary = pendingCycleSummary || currentCycleSummary;
     if (!summary) return;
 
@@ -4087,7 +4089,9 @@ function buildHumanLegend() {
     );
 
     humanLegend.innerHTML = sortedHumans.map((human) => {
-        const learningLevel = Math.round(human.knowledge || human.inheritedKnowledge || 0);
+        const learningLevel = Math.round(
+            human.knowledge ?? human.inheritedKnowledge ?? 0
+        );
         const decisionSource = human.lastBackendActionName ? 'TensorFlow' : 'regras locais';
         const backendStatus = humanBackendOnline ? 'conectado' : 'indisponível';
         const currentAction = human.currentTensorflowAction || human.lastBackendActionName || 'explorar';
@@ -4709,6 +4713,7 @@ window.addEventListener('keydown', async (event) => {
 
 if (cycleModalRestartButton) {
     cycleModalRestartButton.addEventListener('click', () => {
+        console.log('botão Recomeçar ciclo clicado');
         restartNextCycleFromSummary();
     });
 }
