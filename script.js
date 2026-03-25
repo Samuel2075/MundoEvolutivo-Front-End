@@ -2324,6 +2324,7 @@ function openCycleModal(summary) {
 
 async function sendCycleKnowledgeToBackend(summary) {
     if (!summary) return null;
+
     const payload = {
         ended_cycle: summary.endedCycleNumber,
         next_cycle: summary.nextCycleNumber,
@@ -2336,16 +2337,27 @@ async function sendCycleKnowledgeToBackend(summary) {
         },
         timestamp_ms: Date.now()
     };
+
+    console.log('Payload enviado para /inherit_cycle:', payload);
+
     try {
         const response = await fetch(`${HUMAN_BACKEND_URL}/inherit_cycle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        console.log('Status HTTP /inherit_cycle:', response.status);
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Erro bruto do backend /inherit_cycle:', text);
+            throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('JSON recebido de /inherit_cycle:', data);
         humanBackendOnline = true;
-        console.info('🧠 Memória do ciclo enviada ao TensorFlow:', data);
         return data;
     } catch (error) {
         console.warn('Falha ao enviar memória do ciclo ao TensorFlow:', error);
@@ -2354,21 +2366,27 @@ async function sendCycleKnowledgeToBackend(summary) {
 }
 
 async function restartNextCycleFromSummary() {
-
-    console.log('restartNextCycleFromSummary foi chamada');
     const summary = pendingCycleSummary || currentCycleSummary;
-    if (!summary) return;
+    console.log('summary do restart:', summary);
+
+    if (!summary) {
+        console.warn('Sem summary para reiniciar ciclo');
+        return;
+    }
 
     if (cycleModalRestartButton) cycleModalRestartButton.disabled = true;
 
     try {
+        console.log('Enviando memória ancestral para o backend...');
         const backendResult = await sendCycleKnowledgeToBackend(summary);
+        console.log('Resposta do backend em /inherit_cycle:', backendResult);
 
         if (!backendResult) {
             console.warn('Falha ao enviar memória ancestral ao TensorFlow.');
             return;
         }
 
+        console.log('Fechando modal e regenerando mundo...');
         closeCycleModal();
         regenerateWorld(summary.inheritedArchive);
 
@@ -2377,7 +2395,6 @@ async function restartNextCycleFromSummary() {
         simRunning = true;
 
         requestRender();
-
     } catch (error) {
         console.error('Erro ao reiniciar ciclo:', error);
     } finally {
