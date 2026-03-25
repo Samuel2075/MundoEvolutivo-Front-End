@@ -143,24 +143,24 @@ function mlComputeReward(human, prevState, dtMs) {
 }
 
 async function pingHumanBackend(force = false) {
+async function pingHumanBackend(force = false) {
     const now = performance.now();
     if (!force && now - lastHumanBackendPingAt < HUMAN_BACKEND_PING_INTERVAL_MS) return humanBackendOnline;
+
     lastHumanBackendPingAt = now;
+
     try {
-        console.log('Pingando:', `${HUMAN_BACKEND_URL}/status`);
         const response = await fetch(`${HUMAN_BACKEND_URL}/status`, { method: 'GET' });
-        console.log('HTTP /status:', response.status);
-
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        console.log('JSON /status:', data);
 
+        const data = await response.json();
         humanBackendOnline = !!data && data.status === 'running';
-        console.log('humanBackendOnline atualizado para:', humanBackendOnline);
+        console.log('Ping /status OK:', humanBackendOnline, data);
     } catch (error) {
-        console.error('Erro no ping:', error);
+        console.error('Erro no /status:', error);
         humanBackendOnline = false;
     }
+
     return humanBackendOnline;
 }
 
