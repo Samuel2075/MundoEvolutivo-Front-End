@@ -3400,35 +3400,101 @@ function killHuman(human, reason = null) {
 
 function createHumanChild(parentA, parentB) {
     if (humans.length >= HUMAN_POPULATION_CAP) return;
-    const homeBase = findNearestBase({ x: (parentA.x + parentB.x) * 0.5, y: (parentA.y + parentB.y) * 0.5 }, TILE_SIZE * 5) || findNearestBase(parentA, TILE_SIZE * 8) || findNearestBase(parentB, TILE_SIZE * 8);
-    const baseTile = homeBase ? (worldToTile(homeBase.x, homeBase.y) || findSpawnTileForHumans(simulationRng)) : (worldToTile((parentA.x + parentB.x) * 0.5, (parentA.y + parentB.y) * 0.5) || findSpawnTileForHumans(simulationRng));
+
+    const homeBase =
+        findNearestBase({ x: (parentA.x + parentB.x) * 0.5, y: (parentA.y + parentB.y) * 0.5 }, TILE_SIZE * 5) ||
+        findNearestBase(parentA, TILE_SIZE * 8) ||
+        findNearestBase(parentB, TILE_SIZE * 8);
+
+    const baseTile = homeBase
+        ? (worldToTile(homeBase.x, homeBase.y) || findSpawnTileForHumans(simulationRng))
+        : (worldToTile((parentA.x + parentB.x) * 0.5, (parentA.y + parentB.y) * 0.5) || findSpawnTileForHumans(simulationRng));
+
     const genes = {};
     for (const trait of HUMAN_TRAIT_KEYS) {
         genes[trait] = mutateInheritedGene((parentA.genes[trait] + parentB.genes[trait]) / 2, simulationRng);
     }
+
     const inheritedProfile = inheritParentalTensorflowKnowledge(parentA, parentB);
-    const child = createHumanFromGenes(baseTile, genes, simulationRng, Math.max(parentA.generation, parentB.generation) + 1, null, inheritedProfile);
+
+    const child = createHumanFromGenes(
+        baseTile,
+        genes,
+        simulationRng,
+        Math.max(parentA.generation, parentB.generation) + 1,
+        null,
+        inheritedProfile
+    );
+
+    const avgParentKnowledge = (
+        (parentA.knowledge || parentA.inheritedKnowledge || 0) +
+        (parentB.knowledge || parentB.inheritedKnowledge || 0)
+    ) / 2;
+
+    child.inheritedKnowledge = clamp(
+        Math.max(
+            child.inheritedKnowledge || 0,
+            avgParentKnowledge * 0.55
+        ),
+        0,
+        100
+    );
+
+    child.knowledge = clamp(
+        Math.max(
+            child.knowledge || 0,
+            child.inheritedKnowledge * 0.85
+        ),
+        0,
+        100
+    );
+
+    child.knowledgeDisplay = Math.round(
+        (child.knowledge * 0.8) + (child.inheritedKnowledge * 0.2)
+    );
+
+    child.parentalLegacyScore = clamp(
+        child.parentalLegacyScore ||
+        (((parentA.score || 0) + (parentB.score || 0)) / 2),
+        0,
+        50
+    );
+
+    child.parentalActionStrength = clamp(
+        child.parentalActionStrength ||
+        Math.max(parentA.parentalActionStrength || 0, parentB.parentalActionStrength || 0, 0.2),
+        0,
+        1
+    );
+
     child.inventory.food = randomBetween(simulationRng, 2, 4);
     child.inventory.water = randomBetween(simulationRng, 2, 4);
+
     if (homeBase) {
         child.x = homeBase.x + randomBetween(simulationRng, -10, 10);
         child.y = homeBase.y + randomBetween(simulationRng, -10, 10);
         child.homeBaseId = homeBase.id;
     }
+
     humans.push(child);
     sendOffspringKnowledgeToBackend(child, inheritedProfile);
+
     currentRunChildrenBorn += 1;
     recordHumanAction(child, 'wander', `nasceu com herança micro • conhecimento ${Math.round(child.inheritedKnowledge || 0)}`, true);
     recordHumanAction(parentA, 'mate', `gerou ${child.name}`, true);
     recordHumanAction(parentB, 'mate', `gerou ${child.name}`, true);
+
     parentA.children += 1;
     parentB.children += 1;
     parentA.hasReproduced = true;
     parentB.hasReproduced = true;
+
     addHumanScore(parentA, HUMAN_SCORE_RULES.reproduce, 'Reprodução', `gerou ${child.name}`);
     addHumanScore(parentB, HUMAN_SCORE_RULES.reproduce, 'Reprodução', `gerou ${child.name}`);
+
     parentA.reproductionCooldownMs = randomBetween(simulationRng, 12000, 22000) * (1.05 - parentA.genes.fertility * 0.28);
     parentB.reproductionCooldownMs = randomBetween(simulationRng, 12000, 22000) * (1.05 - parentB.genes.fertility * 0.28);
+
     refreshSocietyUnlocks();
 }
 
@@ -3878,6 +3944,7 @@ function chooseHumanTensorflowDecision(human, ctx, dtMs) {
 
     if (human.mlLastInputs && human.mlLastAction >= 0 && human.mlLastState) {
         const reward = mlComputeReward(human, human.mlLastState, dtMs);
+        human.lastMLReward = reward;
         if (humanBackendOnline) {
             queueHumanBackendTrainingSample({
                 states: [...human.mlLastInputs],
@@ -4040,11 +4107,13 @@ function handleTensorflowHumanInteraction(human, targetAnimal, stats, dtMs) {
 
 async function updateHumans(dtMs, now) {
     if (!humans.length) return;
+
     if (now - lastHumanBackendPingAt > HUMAN_BACKEND_PING_INTERVAL_MS) {
         pingHumanBackend().then(() => {
             requestRender();
         });
     }
+
     flushHumanBackendDecisionQueue();
     flushHumanBackendTrainingQueue();
 
@@ -4055,18 +4124,77 @@ async function updateHumans(dtMs, now) {
         if (!human.alive) continue;
 
         const stats = deriveHumanStats(human);
+
+        const effectiveKnowledge = clamp(
+            ((human.knowledge || 0) * 0.75) + ((human.inheritedKnowledge || 0) * 0.25),
+            0,
+            100
+        );
+        const knowledgeFactor = effectiveKnowledge / 100;
+        const wisdomFactor = human.genes?.wisdom || 0.5;
+
         human.knownActions = getHumanKnownActions(human);
         human.ageMs += dtMs;
-        human.decisionCooldownMs = Math.max(0, (human.decisionCooldownMs || 0) - dtMs);
-        human.reproductionCooldownMs = Math.max(0, (human.reproductionCooldownMs || 0) - dtMs);
-        human.aidCooldownMs = Math.max(0, (human.aidCooldownMs || 0) - dtMs);
+
+        human.decisionCooldownMs = Math.max(
+            0,
+            (human.decisionCooldownMs || 0) - dtMs * (1 + knowledgeFactor * 0.18)
+        );
+        human.reproductionCooldownMs = Math.max(
+            0,
+            (human.reproductionCooldownMs || 0) - dtMs * (1 + knowledgeFactor * 0.12)
+        );
+        human.aidCooldownMs = Math.max(
+            0,
+            (human.aidCooldownMs || 0) - dtMs * (1 + knowledgeFactor * 0.14)
+        );
         human.taskCommitMs = Math.max(0, (human.taskCommitMs || 0) - dtMs);
+
         consumeHumanInventory(human, dtMs);
+
+        human.hunger = clamp(
+            human.hunger - dtMs * 0.00018 * knowledgeFactor * (0.7 + wisdomFactor * 0.6),
+            0,
+            100
+        );
+        human.thirst = clamp(
+            human.thirst - dtMs * 0.00022 * knowledgeFactor * (0.7 + wisdomFactor * 0.6),
+            0,
+            100
+        );
+
+        const isRecoveryAction =
+            human.mode === 'rest' ||
+            human.mode === 'heal' ||
+            human.currentTensorflowAction === 'descansar' ||
+            human.currentTensorflowAction === 'curar';
+
+        if (isRecoveryAction) {
+            human.energy = clamp(
+                human.energy + dtMs * 0.0020 * knowledgeFactor,
+                0,
+                100
+            );
+            human.health = clamp(
+                human.health + dtMs * 0.00085 * knowledgeFactor,
+                0,
+                100
+            );
+        }
+
+        human.survivalKnowledgeBonus = effectiveKnowledge;
+        human.knowledgeDisplay = Math.round(
+            ((human.knowledge || 0) * 0.78) + ((human.inheritedKnowledge || 0) * 0.22)
+        );
+
         updateHumanMemory(human, stats, dtMs);
 
         human.ageLimitOverride = Math.min(stats.ageLimit, HUMAN_MAX_LIFESPAN_MS);
         if (human.ageMs >= human.ageLimitOverride || human.health <= 0) {
-            const deathReason = human.ageMs >= human.ageLimitOverride ? 'velhice' : inferHumanDeathReason(human);
+            const deathReason =
+                human.ageMs >= human.ageLimitOverride
+                    ? 'velhice'
+                    : inferHumanDeathReason(human);
             killHuman(human, deathReason);
             continue;
         }
@@ -4074,16 +4202,33 @@ async function updateHumans(dtMs, now) {
         const nearestBase = findNearestBase(human, stats.vision * 1.25);
         const activeBuildSite = findNearestBuildSite(human, TILE_SIZE * 38);
         const nearbyHuman = findNearestHuman(human, TILE_SIZE * 4.2);
-        const nearbyPredator = findNearestAnimal(human, stats.fleeRadius + 40, (animal) => {
-            const species = SPECIES_MAP[animal.speciesId];
-            return !!species && isHostileToHumans(species.id);
-        });
+        const nearbyPredator = findNearestAnimal(
+            human,
+            stats.fleeRadius + 40,
+            (animal) => {
+                const species = SPECIES_MAP[animal.speciesId];
+                return !!species && isHostileToHumans(species.id);
+            }
+        );
+
         const risk = getHumanRiskAssessment(human, stats, nearestBase, nearbyPredator);
         const buildReadiness = getBaseBuildReadiness(human, nearestBase);
         const desiredBaseCount = Math.max(1, Math.ceil(humans.length / HUMAN_BASE_CAPACITY));
         const collectiveWood = totalHumanInventoryResource('wood');
         const collectiveStone = totalHumanInventoryResource('stone');
-        const canStartBuildSite = human.knownActions.includes('construir base') && !activeBuildSite && bases.length < desiredBaseCount && buildReadiness.members >= 1 && ((collectiveWood >= HUMAN_BASE_BUILD_COST.wood * 0.35 && collectiveStone >= HUMAN_BASE_BUILD_COST.stone * 0.35) || bases.length === 0);
+
+        const canStartBuildSite =
+            human.knownActions.includes('construir base') &&
+            !activeBuildSite &&
+            bases.length < desiredBaseCount &&
+            buildReadiness.members >= 1 &&
+            (
+                (
+                    collectiveWood >= HUMAN_BASE_BUILD_COST.wood * 0.35 &&
+                    collectiveStone >= HUMAN_BASE_BUILD_COST.stone * 0.35
+                ) ||
+                bases.length === 0
+            );
 
         const ctx = {
             stats,
@@ -4099,7 +4244,13 @@ async function updateHumans(dtMs, now) {
             needsWood: !!activeBuildSite && getBuildSiteMissing(activeBuildSite, 'wood') > 0.4,
             needsStone: !!activeBuildSite && getBuildSiteMissing(activeBuildSite, 'stone') > 0.4,
             baseNeedsRepair: !!nearestBase && nearestBase.integrity < 78,
-            safeNow: !nearbyPredator && !risk.criticalHealth && !risk.criticalWater && !risk.criticalFood
+            safeNow:
+                !nearbyPredator &&
+                !risk.criticalHealth &&
+                !risk.criticalWater &&
+                !risk.criticalFood,
+            effectiveKnowledge,
+            knowledgeFactor
         };
 
         const tfDecision = chooseHumanTensorflowDecision(human, ctx, dtMs);
@@ -4131,8 +4282,10 @@ function buildHumanLegend() {
 
     humanLegend.innerHTML = sortedHumans.map((human) => {
         const learningLevel = Math.round(
-            human.knowledge ?? human.inheritedKnowledge ?? 0
+            human.knowledgeDisplay ??
+            (((human.knowledge || 0) * 0.78) + ((human.inheritedKnowledge || 0) * 0.22))
         );
+
         const decisionSource = human.lastBackendActionName ? 'TensorFlow' : 'regras locais';
         const backendStatus = humanBackendOnline ? 'conectado' : 'indisponível';
         const currentAction = human.currentTensorflowAction || human.lastBackendActionName || 'explorar';
@@ -4143,16 +4296,16 @@ function buildHumanLegend() {
         );
 
         return `
-          <div class="species-entry human-focus-target" data-human-id="${human.id}">
+        <div class="species-entry human-focus-target" data-human-id="${human.id}">
             <div class="species-main">
-              <span class="swatch" style="background:${shiftHexColor('#f4c38b', human.colorOffset)}"></span>
-              <div class="species-info">
+            <span class="swatch" style="background:${shiftHexColor('#f4c38b', human.colorOffset)}"></span>
+            <div class="species-info">
                 <div class="species-name">${human.name} • ${currentAction} • ❤️${Math.round(human.health)}</div>
                 <div class="species-sub">Energia ${Math.round(human.energy)} • Idade ${Math.floor(human.ageMs / 1000 * 0.21)} anos • Posição ${Math.round(human.x)}, ${Math.round(human.y)}</div>
                 <div class="species-sub">Decisão: ${decisionSource} • Backend: ${backendStatus} • Adaptação: ${adaptationPercent}% • Conhecimento: ${learningLevel}</div>
-              </div>
             </div>
-          </div>
+            </div>
+        </div>
         `;
     }).join('');
 }
