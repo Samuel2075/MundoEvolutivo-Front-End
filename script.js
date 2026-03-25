@@ -147,11 +147,18 @@ async function pingHumanBackend(force = false) {
     if (!force && now - lastHumanBackendPingAt < HUMAN_BACKEND_PING_INTERVAL_MS) return humanBackendOnline;
     lastHumanBackendPingAt = now;
     try {
+        console.log('Pingando:', `${HUMAN_BACKEND_URL}/status`);
         const response = await fetch(`${HUMAN_BACKEND_URL}/status`, { method: 'GET' });
+        console.log('HTTP /status:', response.status);
+
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
+        console.log('JSON /status:', data);
+
         humanBackendOnline = !!data && data.status === 'running';
+        console.log('humanBackendOnline atualizado para:', humanBackendOnline);
     } catch (error) {
+        console.error('Erro no ping:', error);
         humanBackendOnline = false;
     }
     return humanBackendOnline;
@@ -3999,7 +4006,11 @@ function handleTensorflowHumanInteraction(human, targetAnimal, stats, dtMs) {
 
 async function updateHumans(dtMs, now) {
     if (!humans.length) return;
-    if (now - lastHumanBackendPingAt > HUMAN_BACKEND_PING_INTERVAL_MS) await pingHumanBackend();
+    if (now - lastHumanBackendPingAt > HUMAN_BACKEND_PING_INTERVAL_MS) {
+        pingHumanBackend().then(() => {
+            requestRender();
+        });
+    }
     flushHumanBackendDecisionQueue();
     flushHumanBackendTrainingQueue();
 
@@ -4495,7 +4506,11 @@ async function regenerateWorld(inheritedArchive = civilizationArchive) {
     buildOverviewLayers();
     initializeFauna();
     spawnInitialHumans();
-    await pingHumanBackend(true);
+    await pingHumanBackend(true).then(() => {
+        requestRender();
+        updateHud();
+        buildHumanLegend();
+    });
     camera.x = initialHumanFocus ? initialHumanFocus.x : WORLD_WIDTH * 0.5;
     camera.y = initialHumanFocus ? initialHumanFocus.y : WORLD_HEIGHT * 0.5;
     camera.zoom = 0.9;
