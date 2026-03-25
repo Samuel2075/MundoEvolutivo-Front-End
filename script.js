@@ -119,26 +119,72 @@ function mlGetStateInputs(human, stats, risk, ctx) {
 
 function mlComputeReward(human, prevState, dtMs) {
     if (!prevState) return 0;
-    let reward = 0.04;
-    reward += (human.health - prevState.health) / 100 * 1.4;
-    reward += (prevState.hunger - human.hunger) / 100 * 1.2;
-    reward += (prevState.thirst - human.thirst) / 100 * 1.2;
-    if (human.health < 30) reward -= 0.8;
-    if (human.hunger > 80) reward -= 0.6;
-    if (human.thirst > 80) reward -= 0.6;
-    if (human.energy < 15) reward -= 0.3;
-    if ((human.children || 0) > (prevState.children || 0)) reward += 2.5;
-    if ((human.basesBuilt || 0) > (prevState.basesBuilt || 0)) reward += 3.0;
-    if ((human.successfulHunts || 0) > (prevState.successfulHunts || 0)) reward += 1.5;
-    if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.8;
-    if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0)) reward += 0.5;
-    if ((human.recentDamageMs || 0) > 0 && prevState.health > human.health) reward -= 0.4;
+
+    let reward = 0.05;
+
+    // sobrevivência básica
+    reward += ((human.health - prevState.health) / 100) * 1.6;
+    reward += ((prevState.hunger - human.hunger) / 100) * 1.4;
+    reward += ((prevState.thirst - human.thirst) / 100) * 1.4;
+    reward += ((human.energy - prevState.energy) / 100) * 1.1;
+
+    // sobreviver ao tempo também conta
+    reward += dtMs * 0.000015;
+
+    // punições por estado crítico
+    if (human.health < 45) reward -= 0.35;
+    if (human.health < 30) reward -= 0.9;
+    if (human.hunger > 70) reward -= 0.35;
+    if (human.hunger > 85) reward -= 0.75;
+    if (human.thirst > 70) reward -= 0.35;
+    if (human.thirst > 85) reward -= 0.85;
+    if (human.energy < 30) reward -= 0.25;
+    if (human.energy < 15) reward -= 0.65;
+
+    // gastar energia sem benefício é ruim
+    if (human.energy < prevState.energy && human.health <= prevState.health && human.hunger >= prevState.hunger && human.thirst >= prevState.thirst) {
+        reward -= 0.25;
+    }
+
+    // eventos positivos importantes
+    if ((human.children || 0) > (prevState.children || 0)) reward += 2.8;
+    if ((human.basesBuilt || 0) > (prevState.basesBuilt || 0)) reward += 3.2;
+    if ((human.successfulHunts || 0) > (prevState.successfulHunts || 0)) reward += 1.6;
+    if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.9;
+    if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0)) reward += 0.7;
+
+    // descanso e cura bem sucedidos
+    if ((human.currentTensorflowAction === 'descansar' || human.mode === 'rest') && human.energy > prevState.energy) {
+        reward += 0.45;
+    }
+
+    if ((human.currentTensorflowAction === 'curar' || human.mode === 'heal') && human.health > prevState.health) {
+        reward += 0.55;
+    }
+
+    // dano recente
+    if ((human.recentDamageMs || 0) > 0 && prevState.health > human.health) {
+        reward -= 0.55;
+    }
+
+    // progresso coletivo de construção
     const site = buildSites.length ? buildSites[0] : null;
     if (site) {
-        const currProgress = ((site.stored.wood || 0) + (site.stored.stone || 0)) / (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone);
+        const currProgress =
+            ((site.stored.wood || 0) + (site.stored.stone || 0)) /
+            (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone);
+
         const prevProgress = prevState.siteProgress || 0;
-        if (currProgress > prevProgress) reward += (currProgress - prevProgress) * 4.0;
+        if (currProgress > prevProgress) {
+            reward += (currProgress - prevProgress) * 4.4;
+        }
     }
+
+    // morte pune mais
+    if (!human.alive) {
+        reward -= 3.0;
+    }
+
     return clamp(reward, -3.0, 3.0);
 }
 
