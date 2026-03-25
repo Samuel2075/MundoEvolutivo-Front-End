@@ -3997,9 +3997,9 @@ function handleTensorflowHumanInteraction(human, targetAnimal, stats, dtMs) {
     syncHumanModeLog(human);
 }
 
-function updateHumans(dtMs, now) {
+async function updateHumans(dtMs, now) {
     if (!humans.length) return;
-    if (now - lastHumanBackendPingAt > HUMAN_BACKEND_PING_INTERVAL_MS) pingHumanBackend();
+    if (now - lastHumanBackendPingAt > HUMAN_BACKEND_PING_INTERVAL_MS) await pingHumanBackend();
     flushHumanBackendDecisionQueue();
     flushHumanBackendTrainingQueue();
 
@@ -4481,7 +4481,7 @@ function updateHud() {
     }
 }
 
-function regenerateWorld(inheritedArchive = civilizationArchive) {
+async function regenerateWorld(inheritedArchive = civilizationArchive) {
     terrainChunks.clear();
     overviewTerrainCanvas = null;
     overviewResourcesCanvas = null;
@@ -4495,7 +4495,7 @@ function regenerateWorld(inheritedArchive = civilizationArchive) {
     buildOverviewLayers();
     initializeFauna();
     spawnInitialHumans();
-    pingHumanBackend(true);
+    await pingHumanBackend(true);
     camera.x = initialHumanFocus ? initialHumanFocus.x : WORLD_WIDTH * 0.5;
     camera.y = initialHumanFocus ? initialHumanFocus.y : WORLD_HEIGHT * 0.5;
     camera.zoom = 0.9;
@@ -4503,14 +4503,14 @@ function regenerateWorld(inheritedArchive = civilizationArchive) {
     requestRender();
 }
 
-function simulationStep() {
+async function simulationStep() {
     if (!world || !simRunning) return;
     const now = performance.now();
     simulationTimeMs += SIM_TICK_MS;
     updateAnimals(SIM_TICK_MS, now);
     processRespawns(now);
     updateCarcasses(now);
-    updateHumans(SIM_TICK_MS, now);
+    await updateHumans(SIM_TICK_MS, now);
 
     for (const [speciesId, state] of speciesState.entries()) {
         if (state.alive === 0 && state.pendingRespawns === 0 && state.birthsRemaining <= 0) {
