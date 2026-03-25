@@ -154,7 +154,7 @@ async function pingHumanBackend(force = false) {
 
         const data = await response.json();
         humanBackendOnline = !!data && data.status === 'running';
-        console.log('Ping /status OK:', humanBackendOnline, data);
+        // console.log('Ping /status OK:', humanBackendOnline, data);
     } catch (error) {
         console.error('Erro no /status:', error);
         humanBackendOnline = false;
@@ -2352,11 +2352,11 @@ async function sendCycleKnowledgeToBackend(summary) {
         timestamp_ms: Date.now()
     };
 
-    console.log('Payload enviado para /inherit_cycle:', payload);
+    // console.log('Payload enviado para /inherit_cycle:', payload);
 
     try {
         const body = JSON.stringify(payload);
-        console.log('Payload serializado. Tamanho:', body.length);
+        // console.log('Payload serializado. Tamanho:', body.length);
 
         const response = await fetch(`${HUMAN_BACKEND_URL}/inherit_cycle`, {
             method: 'POST',
@@ -2364,7 +2364,7 @@ async function sendCycleKnowledgeToBackend(summary) {
             body
         });
 
-        console.log('Status HTTP /inherit_cycle:', response.status);
+        // console.log('Status HTTP /inherit_cycle:', response.status);
 
         if (!response.ok) {
             const text = await response.text();
