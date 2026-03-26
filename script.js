@@ -27,36 +27,52 @@ const WORLD_HEIGHT = WORLD_ROWS * TILE_SIZE;
 const SIM_TICK_MS = 140;
 const HUMAN_DRAW_ZOOM_THRESHOLD = 0.14;
 const ENTITY_LABEL_ZOOM_THRESHOLD = 0.2;
-const HUMAN_POPULATION_CAP = Number.POSITIVE_INFINITY;;
+const HUMAN_POPULATION_CAP = 80;
 const HUMAN_MATURE_AGE_MS = 24000;
 const HOSTILE_TO_HUMANS = new Set(['wolf', 'lynx', 'bear', 'hyena', 'crocodile', 'eagle', 'boar']);
 const HUMAN_MAX_AGE_MS = 380000;
 const HUMAN_MAX_LIFESPAN_MS = 5 * 60 * 1000;
-const HUMAN_REPRODUCTION_DISTANCE = 30;
+const HUMAN_REPRODUCTION_DISTANCE = 8;
 const HUMAN_BASE_BUILD_COST = { wood: 16, stone: 10 };
 const HUMAN_BASE_CAPACITY = 2;
 const HUMAN_BASE_BUILD_RADIUS = 24;
 const HUMAN_TRAIT_KEYS = ['speed', 'vision', 'courage', 'efficiency', 'fertility', 'wisdom'];
 const HUMAN_ALLOWED_BIOMES = ['plains', 'forest', 'swamp', 'mountain'];
 const EDIBLE_RESOURCE_TYPES = new Set(['berry', 'mushroom', 'cactus', 'fish', 'herb']);
-const HUMAN_ACTION_LIBRARY = ['beber água', 'explorar', 'caçar', 'pescar', 'coletar recursos', 'construir base', 'armazenar', 'descansar', 'curar', 'acasalar', 'ajudar aliado', 'trocar informações', 'fugir', 'reparar base', 'trocar recursos'];
+const HUMAN_ACTION_LIBRARY = [
+  'beber água',
+  'explorar',
+  'caçar',
+  'pescar',
+  'coletar recursos',
+  'construir base',
+  'armazenar',
+  'descansar',
+  'curar',
+  'acasalar',
+  'ajudar aliado',
+  'trocar informações',
+  'fugir',
+  'reparar base',
+  'trocar recursos'
+];
 const HUMAN_DIRECT_FOOD_TYPES = new Set(['berry', 'mushroom', 'cactus', 'fish']);
 const HUMAN_GROUP_DEFENSE_RADIUS = TILE_SIZE * 5.2;
 const HUMAN_ALLY_SUPPORT_RADIUS = TILE_SIZE * 6.5;
 const HUMAN_AUTO_SHARE_RADIUS = TILE_SIZE * 3.2;
 const HUMAN_GROUP_BUILD_RADIUS = TILE_SIZE * 7.5;
 const HUMAN_SCORE_RULES = Object.freeze({
-    oldAgeFailure: -1,
+    oldAgeFailure: -4,
     buildBase: 4,
     reproduce: 4,
     knowledgeShare: 1,
     teamwork: 2,
     craftWeapon: 1,
-    huntDeath: -1,
+    huntDeath: 0,
     successfulHunt: 2,
     mlFitness: 1
 });
-
+const societyUnlocks = new Set(HUMAN_ACTION_LIBRARY);
 // ── TensorFlow backend para tomada de decisão dos humanos ───────────────────
 const ML_INPUT_SIZE = 19;
 const TF_ACTIONS = [
@@ -77,7 +93,7 @@ const TF_ACTIONS = [
     'trocar recursos'
 ];
 const ML_OUTPUT_SIZE = TF_ACTIONS.length;
-const HUMAN_BACKEND_URL = 'https://founder-musician-behavior-public.trycloudflare.com';
+const HUMAN_BACKEND_URL = 'https://beneath-counting-automobiles-convertible.trycloudflare.com';
 let humanBackendOnline = false;
 let humanBackendBusy = false;
 let humanBackendTrainingBusy = false;
@@ -87,6 +103,56 @@ const HUMAN_BACKEND_DECISION_BATCH_MAX = 24;
 const HUMAN_BACKEND_TRAIN_BATCH_MAX = 32;
 let humanBackendDecisionQueue = [];
 let humanBackendTrainQueue = [];
+
+// ── Epsilon-greedy: exploração com decaimento ─────────────────────────────────
+// Começa explorando 25% do tempo, decai até 5% ao longo de 8 min de simulação
+const ML_EPSILON_START    = 0.25;
+const ML_EPSILON_END      = 0.05;
+const ML_EPSILON_DECAY_MS = 8 * 60 * 1000;
+let mlEpsilon = ML_EPSILON_START;
+
+function mlGetCurrentEpsilon() {
+    const t = Math.min(simulationTimeMs / ML_EPSILON_DECAY_MS, 1);
+    mlEpsilon = ML_EPSILON_START + (ML_EPSILON_END - ML_EPSILON_START) * t;
+    return mlEpsilon;
+}
+
+// ── Experience Replay Buffer ──────────────────────────────────────────────────
+// Acumula experiências e sorteia batches aleatórios — quebra correlação temporal
+const REPLAY_BUFFER_MAX    = 1000;
+const REPLAY_BATCH_SIZE    = 48;
+const REPLAY_MIN_TO_TRAIN  = 64;
+let replayBuffer = [];
+
+function replayBufferAdd(sample) {
+    if (!sample || !sample.states || !sample.next_states ||
+        !Number.isFinite(sample.actions) || !Number.isFinite(sample.rewards)) return;
+    replayBuffer.push(sample);
+    if (replayBuffer.length > REPLAY_BUFFER_MAX) replayBuffer.shift();
+}
+
+function replayBufferSampleBatch(batchSize) {
+    if (replayBuffer.length < REPLAY_MIN_TO_TRAIN) return null;
+    const size = Math.min(batchSize, replayBuffer.length);
+    const batch = [];
+    const used = new Set();
+    let attempts = 0;
+    while (batch.length < size && attempts < size * 4) {
+        const idx = Math.floor(Math.random() * replayBuffer.length);
+        if (!used.has(idx)) { used.add(idx); batch.push(replayBuffer[idx]); }
+        attempts++;
+    }
+    return batch.length > 0 ? batch : null;
+}
+
+function flushReplayBatchToTrainingQueue() {
+    if (!humanBackendOnline) return;
+    const batch = replayBufferSampleBatch(REPLAY_BATCH_SIZE);
+    if (!batch) return;
+    for (const sample of batch) humanBackendTrainQueue.push(sample);
+    if (humanBackendTrainQueue.length > 500)
+        humanBackendTrainQueue.splice(0, humanBackendTrainQueue.length - 500);
+}
 
 function mlGetStateInputs(human, stats, risk, ctx) {
     const foodAmount = getHumanFoodAmount(human);
@@ -185,7 +251,7 @@ function mlComputeReward(human, prevState, dtMs) {
         reward -= 3.0;
     }
 
-    return clamp(reward, -3.0, 3.0);
+    return clamp(reward, -4.0, 5.0);
 }
 
 async function pingHumanBackend(force = false) {
@@ -291,11 +357,8 @@ function updateHumanKnowledgeFromTensorFlow(human, qValues) {
 }
 
 function queueHumanBackendTrainingSample(sample) {
-    if (!sample || !sample.states || !sample.next_states || !Number.isFinite(sample.actions) || !Number.isFinite(sample.rewards)) return;
-    humanBackendTrainQueue.push(sample);
-    if (humanBackendTrainQueue.length > 240) {
-        humanBackendTrainQueue.splice(0, humanBackendTrainQueue.length - 240);
-    }
+    // Armazena no replay buffer — o flush vai sortear aleatoriamente para treinar
+    replayBufferAdd(sample);
 }
 
 async function flushHumanBackendTrainingQueue() {
@@ -479,8 +542,6 @@ let bases = [];
 let buildSites = [];
 let initialHumanFocus = null;
 let tribeKnowledge = {};
-const ALL_HUMAN_ACTIONS = ['beber', 'coletar', 'vasculhar', 'caçar', 'acasalamento', 'coletar recursos', 'construir base', 'armazenar', 'descansar', 'pescar', 'curar', 'proteger base', 'ajudar aliado', 'trocar informações'];
-const societyUnlocks = new Set(ALL_HUMAN_ACTIONS);
 let respawnQueue = [];
 let speciesState = new Map();
 let simulationRng = Math.random;
@@ -1524,13 +1585,13 @@ function buildFaunaLegend() {
 }
 
 function refreshSocietyUnlocks() {
-    for (const action of ALL_HUMAN_ACTIONS) {
+    for (const action of HUMAN_ACTION_LIBRARY) {
         societyUnlocks.add(action);
     }
 }
 
 function getHumanKnownActions(human) {
-    return [...ALL_HUMAN_ACTIONS];
+    return [...HUMAN_ACTION_LIBRARY];
 }
 
 function findNearestBase(source, radius = Infinity, filterFn = null) {
@@ -2645,7 +2706,7 @@ function createHumanFromGenes(tile, genes, rng, generation = 1, forcedSex = null
         teamworkCount: 0,
         hasReproduced: false,
         homeBaseId: null,
-        knownActions: [...ALL_HUMAN_ACTIONS],
+        knownActions: [...HUMAN_ACTION_LIBRARY],
         memory: inheritedProfile?.memory || {
             water: null,
             food: null,
@@ -2681,6 +2742,7 @@ function createHumanFromGenes(tile, genes, rng, generation = 1, forcedSex = null
         lastY: tile.y + TILE_SIZE * 0.5,
         mlLastInputs: null,
         mlLastAction: -1,
+        mlLastActionIndex: null,
         mlLastState: null,
         mlTotalReward: 0,
         mlUpdateCounter: 0,
@@ -3986,50 +4048,105 @@ function buildTensorflowDecision(human, ctx, actionName) {
 
 function chooseHumanTensorflowDecision(human, ctx, dtMs) {
     const inputs = mlGetStateInputs(human, ctx.stats, ctx.risk, ctx);
+
+    // ── Captura prevState para treinamento ANTES de qualquer mudança ──────────
+    const prevState = human.mlLastInputs
+        ? {
+            health: human.health,
+            hunger: human.hunger,
+            thirst: human.thirst,
+            energy: human.energy,
+            children: human.children || 0,
+            basesBuilt: human.basesBuilt || 0,
+            successfulHunts: human.successfulHunts || 0,
+            knowledgeShares: human.knowledgeShares || 0,
+            teamworkCount: human.teamworkCount || 0,
+            siteProgress: ctx.activeBuildSite
+                ? ((ctx.activeBuildSite.stored.wood || 0) + (ctx.activeBuildSite.stored.stone || 0)) /
+                  (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone)
+                : 0
+        }
+        : null;
+
+    // Enfileira decisão (assíncrono — resposta chega no próximo tick ou depois)
+    human.mlLastInputs = [...inputs];
     queueHumanBackendDecision(human, inputs);
 
-    if (human.mlLastInputs && human.mlLastAction >= 0 && human.mlLastState) {
-        const reward = mlComputeReward(human, human.mlLastState, dtMs);
-        human.lastMLReward = reward;
-        if (humanBackendOnline) {
-            queueHumanBackendTrainingSample({
-                states: [...human.mlLastInputs],
-                actions: human.mlLastAction,
-                rewards: reward,
-                next_states: [...inputs],
-                dones: !human.alive || human.health <= 0
-            });
+    // ── Usa a última resposta do backend, ou fallback para regras locais ──────
+    let actionIndex;
+    let actionName;
+    let wasExploration = false;
+
+    // ── Epsilon-greedy: exploração aleatória para descobrir novas estratégias ──
+    // Humanos em estado crítico nunca exploram — só humanos "estáveis" exploram
+    const epsilon = mlGetCurrentEpsilon();
+    const canExplore = humanBackendOnline && ctx.safeNow &&
+                       human.health > 40 && human.hunger < 75 && human.thirst < 75;
+
+    if (canExplore && Math.random() < epsilon) {
+        // Ação completamente aleatória — tentativa e erro real
+        actionIndex = Math.floor(Math.random() * ML_OUTPUT_SIZE);
+        actionName = TF_ACTIONS[actionIndex];
+        wasExploration = true;
+    } else if (humanBackendOnline && Number.isFinite(human.backendActionIndex)) {
+        actionIndex = human.backendActionIndex;
+        actionName = TF_ACTIONS[actionIndex] || 'explorar';
+    } else {
+        // Fallback: regras de emergência locais em vez de "explorar" fixo
+        const emergency = getHumanEmergencyUtilityDecision(human, ctx);
+        if (emergency && !emergency.wanderPurpose) {
+            const modeToAction = {
+                drink: 'beber água', flee: 'fugir', heal: 'curar',
+                rest: 'descansar', hunt: 'caçar', fish: 'pescar',
+                forage: 'coletar recursos', gatherWood: 'coletar recursos',
+                gatherStone: 'coletar recursos', store: 'armazenar',
+                buildBase: 'construir base', repairBase: 'reparar base',
+                mate: 'acasalar', aidAlly: 'ajudar aliado',
+                knowledgeShare: 'trocar informações'
+            };
+            actionName = modeToAction[emergency.mode] || 'explorar';
+        } else if (emergency && emergency.wanderPurpose === 'water') {
+            actionName = 'beber água';
+        } else if (emergency && emergency.wanderPurpose === 'food') {
+            actionName = 'coletar recursos';
+        } else {
+            actionName = 'explorar';
         }
-        human.mlTotalReward = (human.mlTotalReward || 0) + reward;
-        human.mlUpdateCounter = (human.mlUpdateCounter || 0) + 1;
+        actionIndex = TF_ACTIONS.indexOf(actionName);
+        if (actionIndex < 0) actionIndex = TF_ACTIONS.indexOf('explorar');
     }
 
-    const site = buildSites.length ? buildSites[0] : null;
-    human.mlLastInputs = inputs;
-    human.mlLastState = {
-        health: human.health,
-        hunger: human.hunger,
-        thirst: human.thirst,
-        energy: human.energy,
-        children: human.children || 0,
-        basesBuilt: human.basesBuilt || 0,
-        successfulHunts: human.successfulHunts || 0,
-        knowledgeShares: human.knowledgeShares || 0,
-        teamworkCount: human.teamworkCount || 0,
-        siteProgress: site ? (((site.stored.wood || 0) + (site.stored.stone || 0)) / (HUMAN_BASE_BUILD_COST.wood + HUMAN_BASE_BUILD_COST.stone)) : 0
-    };
+    // ── Enfileira sample de treinamento no replay buffer ──────────────────────
+    if (prevState && human.mlLastActionIndex != null && human.mlLastInputs) {
+        const reward = mlComputeReward(human, prevState, dtMs);
+        const done = !human.alive ? 1 : 0;
+        // Experiências de exploração são marcadas — podem ter reward surpreendente
+        queueHumanBackendTrainingSample({
+            states: [...human.mlLastInputs],
+            actions: human.mlLastActionIndex,
+            rewards: reward,
+            next_states: [...inputs],
+            dones: done,
+            explored: wasExploration ? 1 : 0
+        });
+    }
+    human.mlLastActionIndex = actionIndex;
 
-    const actionIndex = Number.isFinite(human.backendActionIndex) ? human.backendActionIndex : 1;
-    human.mlLastAction = actionIndex;
-    human.lastBackendActionName = TF_ACTIONS[actionIndex] || 'explorar';
+    const execution = buildTensorflowDecision(human, ctx, actionName);
+
     return {
         actionIndex,
-        actionName: human.lastBackendActionName,
-        execution: buildTensorflowDecision(human, ctx, human.lastBackendActionName)
+        actionName,
+        execution
     };
 }
 
 function commitTensorflowHumanExecution(human, execution) {
+    // Guard: se por algum motivo ainda chegar string, converte
+    if (typeof execution === 'string') {
+        pickHumanWanderTarget(human, 'general');
+        return;
+    }
     if (!execution) {
         pickHumanWanderTarget(human, 'general');
         return;
@@ -4162,6 +4279,7 @@ async function updateHumans(dtMs, now) {
 
     flushHumanBackendDecisionQueue();
     flushHumanBackendTrainingQueue();
+    flushReplayBatchToTrainingQueue(); // sorteia batch aleatório do replay buffer
 
     const dtSeconds = dtMs / 1000;
     decayTribeKnowledge(dtMs);
@@ -4199,12 +4317,12 @@ async function updateHumans(dtMs, now) {
         consumeHumanInventory(human, dtMs);
 
         human.hunger = clamp(
-            human.hunger - dtMs * 0.00018 * knowledgeFactor * (0.7 + wisdomFactor * 0.6),
+            human.hunger - dtMs * 0.00008 * knowledgeFactor * (0.6 + wisdomFactor * 0.4),
             0,
             100
         );
         human.thirst = clamp(
-            human.thirst - dtMs * 0.00022 * knowledgeFactor * (0.7 + wisdomFactor * 0.6),
+            human.thirst - dtMs * 0.0001 * knowledgeFactor * (0.6 + wisdomFactor * 0.4),
             0,
             100
         );
@@ -4233,14 +4351,25 @@ async function updateHumans(dtMs, now) {
             ((human.knowledge || 0) * 0.78) + ((human.inheritedKnowledge || 0) * 0.22)
         );
 
-        updateHumanMemory(human, stats, dtMs);
+        if (human.hunger >= 100) {
+            human.health = clamp(human.health - dtMs * 0.006, 0, 100);
+        }
+
+        if (human.thirst >= 100) {
+            human.health = clamp(human.health - dtMs * 0.009, 0, 100);
+        }
 
         human.ageLimitOverride = Math.min(stats.ageLimit, HUMAN_MAX_LIFESPAN_MS);
         if (human.ageMs >= human.ageLimitOverride || human.health <= 0) {
             const deathReason =
                 human.ageMs >= human.ageLimitOverride
                     ? 'velhice'
-                    : inferHumanDeathReason(human);
+                    : human.thirst >= 100
+                        ? 'desidratação'
+                        : human.hunger >= 100
+                            ? 'fome'
+                            : inferHumanDeathReason(human);
+
             killHuman(human, deathReason);
             continue;
         }
@@ -4302,6 +4431,7 @@ async function updateHumans(dtMs, now) {
         const tfDecision = chooseHumanTensorflowDecision(human, ctx, dtMs);
         commitTensorflowHumanExecution(human, tfDecision.execution);
         human.currentTensorflowAction = tfDecision.actionName;
+        human.lastBackendActionName = tfDecision.actionName;
 
         const targetAnimal = resolveHumanActionTargets(human, stats);
         moveHumanForCurrentAction(human, stats, dtSeconds, dtMs);
@@ -4310,6 +4440,7 @@ async function updateHumans(dtMs, now) {
         human.lastY = human.y;
 
         handleTensorflowHumanInteraction(human, targetAnimal, stats, dtMs);
+        updateHumanMemory(human, stats, dtMs);
     }
 
     humans = humans.filter((human) => human.alive);
