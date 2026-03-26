@@ -225,8 +225,13 @@ function mlComputeReward(human, prevState, dtMs) {
     if ((human.children || 0) > (prevState.children || 0)) reward += 2.8;
     if ((human.basesBuilt || 0) > (prevState.basesBuilt || 0)) reward += 3.2;
     if ((human.successfulHunts || 0) > (prevState.successfulHunts || 0)) reward += 1.6;
-    if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.2;
-    if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0)) reward += 0.7;
+    if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.15;
+    if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0)) reward += 0.2;
+    if ((human.inventory.stone || 0) > (prevState.inventoryStone || 0)) reward += 0.18;
+    if ((human.inventory.food || 0) > (prevState.inventoryFood || 0)) reward += 0.22;
+    if ((human.inventory.water || 0) > (prevState.inventoryWater || 0)) reward += 0.22;
+    if ((human.mode === 'store' || actionName === 'armazenar') && actionWasValid) reward += 0.18;
+    if ((human.mode === 'buildBase' || actionName === 'construir base') && actionWasValid) reward += 0.2;
 
     // descanso e cura bem sucedidos
     if ((actionName === 'descansar' || human.mode === 'rest') && human.energy > prevState.energy) {
