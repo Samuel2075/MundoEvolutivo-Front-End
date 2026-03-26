@@ -93,7 +93,7 @@ const TF_ACTIONS = [
     'trocar recursos'
 ];
 const ML_OUTPUT_SIZE = TF_ACTIONS.length;
-const HUMAN_BACKEND_URL = 'https://beneath-counting-automobiles-convertible.trycloudflare.com';
+const HUMAN_BACKEND_URL = 'https://civil-cardiff-accessories-conscious.trycloudflare.com';
 let humanBackendOnline = false;
 let humanBackendBusy = false;
 let humanBackendTrainingBusy = false;
@@ -225,7 +225,7 @@ function mlComputeReward(human, prevState, dtMs) {
     if ((human.children || 0) > (prevState.children || 0)) reward += 2.8;
     if ((human.basesBuilt || 0) > (prevState.basesBuilt || 0)) reward += 3.2;
     if ((human.successfulHunts || 0) > (prevState.successfulHunts || 0)) reward += 1.6;
-    if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.9;
+    if ((human.knowledgeShares || 0) > (prevState.knowledgeShares || 0)) reward += 0.2;
     if ((human.teamworkCount || 0) > (prevState.teamworkCount || 0)) reward += 0.7;
 
     // descanso e cura bem sucedidos
@@ -282,6 +282,9 @@ function mlComputeReward(human, prevState, dtMs) {
         if (validation === 'invalid_no_partner_for_info') reward -= 0.12;
         if (validation === 'invalid_no_partner_for_exchange') reward -= 0.14;
         if (validation === 'invalid_base_not_damaged') reward -= 0.15;
+        if (validation === 'invalid_no_partner_for_info') reward -= 0.12;
+        if (validation === 'invalid_redundant_info_share') reward -= 0.22;
+        if (validation === 'invalid_low_value_info_share') reward -= 0.18;
     }
 
     return clamp(reward, -4.0, 5.0);
@@ -4282,18 +4285,37 @@ function buildTensorflowDecision(human, ctx, actionName) {
                     humansCanExchangeKnowledge(human, other)
             );
 
-            if (ally) {
-                return success({
-                    mode: 'knowledgeShare',
-                    targetKind: 'knowledgeShare',
-                    x: ally.x,
-                    y: ally.y,
-                    ref: `human:${ally.id}`,
-                    commitMs: 1800
-                });
+            if (!ally) {
+                return invalid('invalid_no_partner_for_info');
             }
 
-            return invalid('invalid_no_partner_for_info');
+            const recentlyShared =
+                (human.lastKnowledgeShareAt && performance.now() - human.lastKnowledgeShareAt < 8000) ||
+                (ally.lastKnowledgeShareAt && performance.now() - ally.lastKnowledgeShareAt < 8000);
+
+            if (recentlyShared) {
+                return invalid('invalid_redundant_info_share');
+            }
+
+            const noUrgentNeed =
+                !ctx.criticalWater &&
+                !ctx.criticalFood &&
+                !ctx.nearbyPredator &&
+                human.health > 75 &&
+                human.energy > 70;
+
+            if (noUrgentNeed && (human.knowledge || 0) <= (ally.knowledge || 0) + 2) {
+                return invalid('invalid_low_value_info_share');
+            }
+
+            return success({
+                mode: 'knowledgeShare',
+                targetKind: 'knowledgeShare',
+                x: ally.x,
+                y: ally.y,
+                ref: `human:${ally.id}`,
+                commitMs: 1800
+            });
         }
 
         case 'trocar recursos': {
@@ -4374,7 +4396,6 @@ function buildTensorflowDecision(human, ctx, actionName) {
 function chooseHumanTensorflowDecision(human, ctx, dtMs) {
     const inputs = mlGetStateInputs(human, ctx.stats, ctx.risk, ctx);
 
-    // ── Captura prevState para treinamento ANTES de qualquer mudança ──────────
     const prevState = human.mlLastInputs
         ? {
             health: human.health,
@@ -4393,23 +4414,18 @@ function chooseHumanTensorflowDecision(human, ctx, dtMs) {
         }
         : null;
 
-    // Enfileira decisão (assíncrono — resposta chega no próximo tick ou depois)
     human.mlLastInputs = [...inputs];
     queueHumanBackendDecision(human, inputs);
 
-    // ── Usa a última resposta do backend, ou fallback para regras locais ──────
     let actionIndex;
     let actionName;
     let wasExploration = false;
 
-    // ── Epsilon-greedy: exploração aleatória para descobrir novas estratégias ──
-    // Humanos em estado crítico nunca exploram — só humanos "estáveis" exploram
     const epsilon = mlGetCurrentEpsilon();
     const canExplore = humanBackendOnline && ctx.safeNow &&
         human.health > 40 && human.hunger < 75 && human.thirst < 75;
 
     if (canExplore && Math.random() < epsilon) {
-        // Ação completamente aleatória — tentativa e erro real
         actionIndex = Math.floor(Math.random() * ML_OUTPUT_SIZE);
         actionName = TF_ACTIONS[actionIndex];
         wasExploration = true;
@@ -4417,7 +4433,6 @@ function chooseHumanTensorflowDecision(human, ctx, dtMs) {
         actionIndex = human.backendActionIndex;
         actionName = TF_ACTIONS[actionIndex] || 'explorar';
     } else {
-        // Fallback: regras de emergência locais em vez de "explorar" fixo
         const emergency = getHumanEmergencyUtilityDecision(human, ctx);
         if (emergency && !emergency.wanderPurpose) {
             const modeToAction = {
@@ -4441,11 +4456,9 @@ function chooseHumanTensorflowDecision(human, ctx, dtMs) {
         if (actionIndex < 0) actionIndex = TF_ACTIONS.indexOf('explorar');
     }
 
-    // ── Enfileira sample de treinamento no replay buffer ──────────────────────
     if (prevState && human.mlLastActionIndex != null && human.mlLastInputs) {
         const reward = mlComputeReward(human, prevState, dtMs);
         const done = !human.alive ? 1 : 0;
-        // Experiências de exploração são marcadas — podem ter reward surpreendente
         queueHumanBackendTrainingSample({
             states: [...human.mlLastInputs],
             actions: human.mlLastActionIndex,
@@ -4582,6 +4595,19 @@ function handleTensorflowHumanInteraction(human, targetAnimal, stats, dtMs) {
             createHumanChild(human, partner);
             human.decisionCooldownMs = 0;
             human.taskCommitMs = 0;
+        }
+    }
+
+    if (human.mode === 'knowledgeShare' && distanceSq(human.x, human.y, human.targetX, human.targetY) <= 24 * 24) {
+        const other = findNearestHuman(
+            human,
+            HUMAN_AUTO_SHARE_RADIUS,
+            (candidate) => candidate.alive && candidate.id !== human.id
+        );
+
+        if (other) {
+            human.lastKnowledgeShareAt = performance.now();
+            other.lastKnowledgeShareAt = performance.now();
         }
     }
 
