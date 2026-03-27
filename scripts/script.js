@@ -298,6 +298,13 @@ function updateHumans(dtMs, now) {
             // human.targetY = WORLD_HEIGHT / 2 + (Math.random() - 0.5) * TILE_SIZE * 10;
         }
 
+        if (human.ageMs >= HUMAN_LIFESPAN_MS) {
+            human.alive = false;
+            rewardHuman(human, 5); // recompensa por ter vivido até o fim
+            spawnDeathToast(human, 'Morreu de velhice');
+            continue;
+        }
+
         // MOVIMENTO
         if (human.vx !== undefined) {
 
@@ -427,7 +434,7 @@ const RESOURCE_STYLE = {
     moss: { color: '#86efac', radius: 2, label: 'Musgo' },
     meat: { color: '#b91c1c', radius: 5, label: 'Carne' }
 };
-
+const HUMAN_LIFESPAN_MS = 180000;
 const htmlResourceRecurso = "";
 
 resourceGridRecursos.append
@@ -724,7 +731,7 @@ function findNearestHuman(human, radius, filterFn = null) {
 
 function reproduce(human) {
     const partner = findNearestHuman(human, TILE_SIZE * 2,
-        h => h.sex !== human.sex && h.needs.energy > 30 && h.needs.hunger < 20
+        h => h.sex !== human.sex
     );
 
     if (!partner) return;
@@ -2344,12 +2351,12 @@ function drawVisibleHumans(viewLeft, viewTop, viewRight, viewBottom) {
         if (human.x < viewLeft - 36 || human.x > viewRight + 36 || human.y < viewTop - 36 || human.y > viewBottom + 36) continue;
         const dir = normalize(human.vx, human.vy);
         const isFemale = human.sex === 'F';
-        const bodyColor = isFemale ? '#ec4899' : '#2563eb';
-        const capeColor = isFemale ? '#f9a8d4' : '#93c5fd';
+        const bodyColor = human.genes.color;
+        const capeColor = isFemale ? '#ec4899' : '#2563eb';
         const torsoRadius = human.genes.size + human.generation * 0.12;
 
         ctx.beginPath();
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillStyle = isFemale ? '#ec4899' : '#2563eb';
         ctx.arc(human.x, human.y + 1.8, torsoRadius + 3.2, 0, Math.PI * 2);
         ctx.fill();
 
